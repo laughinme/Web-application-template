@@ -59,6 +59,9 @@ class TokenService:
         
         jti = payload.get('jti')
         
+        stored_refresh = await self.repo.get(f'refresh:{jti}')
+        if stored_refresh is None: return
+        
         await self.repo.delete(f'refresh:{jti}')
         
         user_id = payload['sub']

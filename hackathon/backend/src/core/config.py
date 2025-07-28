@@ -11,7 +11,6 @@ class Settings(BaseSettings):
     """
     model_config = SettingsConfigDict(
         env_file=f'{BASE_DIR}/.env',
-        secrets_dir=("/run/secrets", "secrets"),
         extra='ignore'
     )
     
@@ -20,8 +19,8 @@ class Settings(BaseSettings):
     API_HOST: str = '0.0.0.0'
     
     # Auth Settings    
-    JWT_PRIVATE_KEY: str = ''
-    JWT_PUBLIC_KEY: str = ''
+    JWT_PRIVATE_KEY: str
+    JWT_PUBLIC_KEY: str
     JWT_ALGO: str = 'RS256'
     ACCESS_TTL: int = 60 * 5
     REFRESH_TTL: int = 60 * 60 * 24 * 7

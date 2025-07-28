@@ -68,7 +68,7 @@ async def logout(
     request: Request,
     response: Response,
     svc: Annotated[CredentialsService, Depends(get_credentials_service)],
-    creds: Annotated[HTTPAuthorizationCredentials, Depends(HTTPBearer)]
+    creds: Annotated[HTTPAuthorizationCredentials, Depends(security)]
 ) -> None:
     refresh_cookie = request.cookies.get("refresh_token")
     
