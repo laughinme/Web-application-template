@@ -22,8 +22,10 @@ class Settings(BaseSettings):
     JWT_PRIVATE_KEY: str
     JWT_PUBLIC_KEY: str
     JWT_ALGO: str = 'RS256'
-    ACCESS_TTL: int = 60 * 5
+    ACCESS_TTL: int = 5
+    # ACCESS_TTL: int = 60 * 5
     REFRESH_TTL: int = 60 * 60 * 24 * 7
+    CSRF_HMAC_KEY: bytes
     
     # Database settings
     DB_USER: str

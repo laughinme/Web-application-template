@@ -24,7 +24,10 @@ async def refresh_tokens(
     response: Response,
     creds: Annotated[HTTPAuthorizationCredentials | None, Depends(security)],
     svc: Annotated[TokenService, Depends(get_token_service)],
-    x_csrf: str | None = Header(None, alias="X-CSRF-Token"),
+    x_csrf: str | None = Header(
+        default=None, alias="X-CSRF-Token", 
+        description='Must only be passed for requests from browsers'
+    ),
 ) -> TokenPair:
     cookie_refresh = request.cookies.get("refresh_token")
     

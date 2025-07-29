@@ -16,3 +16,6 @@ class CacheRepo():
         
     async def update(self, name: str, ttl: int) -> None:
         await self.redis.expire(name, ttl)
+        
+    async def exists(self, *names) -> None:
+        return await self.redis.exists(*names)
