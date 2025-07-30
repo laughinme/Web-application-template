@@ -21,7 +21,7 @@ async def auth_user(
     # if creds is None:
     #     raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Not Authorized")
     
-    payload = token_svc.verify_access(creds.credentials)
+    payload = await token_svc.verify_access(creds.credentials)
     if payload is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Bad access token passed")
     

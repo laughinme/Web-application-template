@@ -1,3 +1,5 @@
+import logging
+
 from pathlib import Path
 from pydantic import model_validator, SecretStr
 
@@ -22,8 +24,7 @@ class Settings(BaseSettings):
     JWT_PRIVATE_KEY: str
     JWT_PUBLIC_KEY: str
     JWT_ALGO: str = 'RS256'
-    ACCESS_TTL: int = 5
-    # ACCESS_TTL: int = 60 * 5
+    ACCESS_TTL: int = 60 * 5
     REFRESH_TTL: int = 60 * 60 * 24 * 7
     CSRF_HMAC_KEY: bytes
     
@@ -47,3 +48,10 @@ class Settings(BaseSettings):
             f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD.get_secret_value()}"
             f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
         )
+
+
+def configure_logging():
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s [%(filename)s:%(lineno)d] %(message)s",
+    )

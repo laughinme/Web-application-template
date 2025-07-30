@@ -1,5 +1,5 @@
 from typing import Annotated, Literal
-from fastapi import APIRouter, Depends, Response, Request, Header
+from fastapi import APIRouter, Depends, Response, Request, Header, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from core.config import Settings
@@ -61,15 +61,14 @@ async def login_user(
 
 @router.post(
     path="/logout",
-    status_code=204,
-    # responses={401: {"description": "Not authorized"}}
+    responses={401: {"description": "Not authorized"}}
 )
 async def logout(
     request: Request,
     response: Response,
     svc: Annotated[CredentialsService, Depends(get_credentials_service)],
     creds: Annotated[HTTPAuthorizationCredentials, Depends(security)]
-) -> None:
+) -> dict:
     refresh_cookie = request.cookies.get("refresh_token")
     
     refresh_header = (
@@ -77,9 +76,13 @@ async def logout(
     )
 
     token = refresh_cookie or refresh_header
-    if token:
-        await svc.logout(token)
+    if token is None:
+        raise HTTPException(401, 'Refresh token is not passed')
+    
+    await svc.logout(token)
     
     if refresh_cookie:
         response.delete_cookie("refresh_token", samesite="lax")
         response.delete_cookie("csrf_token", samesite="lax")
+        
+    return {'message': 'Logged out successfully'}

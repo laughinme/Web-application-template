@@ -88,4 +88,6 @@ class CredentialsService:
     
     
     async def logout(self, refresh_token: str) -> None:
-        await self.token_service.revoke(refresh_token)
+        payload = await self.token_service.revoke(refresh_token)
+        if payload is None:
+            raise WrongCredentials()
