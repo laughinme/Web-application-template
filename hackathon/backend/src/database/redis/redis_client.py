@@ -1,13 +1,9 @@
 from redis.asyncio import Redis
 from core.config import Settings
 
-config = Settings()
+config = Settings() # pyright: ignore[reportCallIssue]
 
-redis_client = Redis(
-    host=config.REDIS_HOST,
-    port=config.REDIS_PORT,
-    decode_responses=True
-)
+redis_client = Redis.from_url(config.REDIS_URL)
 
 def get_redis() -> Redis:
     """Returns prepared Redis session"""

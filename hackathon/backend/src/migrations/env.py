@@ -28,7 +28,8 @@ target_metadata = Base.metadata
 
 settings = Settings() # pyright: ignore[reportCallIssue]
 
-config.set_main_option("sqlalchemy.url", settings.DB_URI)
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+print(settings.DATABASE_URL)
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
