@@ -1,10 +1,12 @@
 from typing import Annotated
 from fastapi import APIRouter, Depends, Header, Request, Response, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi_limiter.depends import RateLimiter
 
 from service.auth import TokenService, get_token_service
 from domain.auth import TokenPair
 from core.config import Settings
+from core.security import extract_jti
 
 router = APIRouter()
 config = Settings() # pyright: ignore[reportCallIssue]
@@ -17,7 +19,8 @@ security = HTTPBearer(
 @router.post(
     path='/refresh',
     response_model=TokenPair,
-    summary='Rotate tokens'
+    summary='Rotate tokens',
+    dependencies=[Depends(RateLimiter(times=10, seconds=60, identifier=extract_jti))],
 )
 async def refresh_tokens(
     request: Request,

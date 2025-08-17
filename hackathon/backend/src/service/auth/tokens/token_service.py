@@ -21,8 +21,7 @@ class TokenService:
     
     @staticmethod 
     def _make_csrf(refresh_token: str) -> str:
-        return hmac.new(config.CSRF_HMAC_KEY, refresh_token.encode(), 'sha256').hexdigest()
-    
+        return hmac.new(config.CSRF_HMAC_KEY, refresh_token.encode(), "sha256").hexdigest()
     
     async def _verify_token(self, token: str) -> dict[str, str] | None:
         try: 
@@ -32,13 +31,12 @@ class TokenService:
             return
         
         jti = payload['jti']
-        if await self.repo.exists(f'block:{jti}'):
+        if await self.repo.exists(f"block:{jti}"):
             logger.info('Failed to verify JWT: this token is blocked')
             return
         
         return payload
-        
-        
+    
     async def issue_tokens(
         self, 
         user_id: UUID | str, 
@@ -91,7 +89,7 @@ class TokenService:
         
         jti = payload['jti']
         ttl = int(payload['exp']) - int(datetime.now(UTC).timestamp())
-        await self.repo.set(f'block:{jti}', '1', ttl)
+        await self.repo.set(f"block:{jti}", "1", ttl)
             
         user_id = payload['sub']
         return await self.issue_tokens(user_id, src)
@@ -103,7 +101,7 @@ class TokenService:
             return
         
         ttl = int(payload['exp']) - int(datetime.now(UTC).timestamp())
-        await self.repo.set(f'block:{payload['jti']}', '1', ttl)
+        await self.repo.set(f"block:{payload['jti']}", "1", ttl)
         
         return payload
 

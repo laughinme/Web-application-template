@@ -1,5 +1,4 @@
-from fastapi import APIRouter, Depends
-from core.security import auth_user
+from fastapi import APIRouter
 
 
 def get_users_router() -> APIRouter:
@@ -8,7 +7,6 @@ def get_users_router() -> APIRouter:
     router = APIRouter(
         prefix='/users',
         tags=['Users'],
-        dependencies=[Depends(auth_user)],
         responses={401: {"description": "Not authorized"}}
     )
 
