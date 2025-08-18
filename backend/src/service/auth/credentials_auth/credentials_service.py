@@ -1,7 +1,6 @@
 from typing import Literal
 from fastapi import Request
 from sqlalchemy.exc import IntegrityError
-from passlib.context import CryptContext
 
 from database.relational_db import (
     UserInterface,
@@ -10,30 +9,27 @@ from database.relational_db import (
 )
 from domain.auth import UserRegister, UserLogin
 from core.config import Settings
+from core.crypto import hash_password, verify_password, needs_rehash
 from .exceptions import AlreadyExists, WrongCredentials
 from ..tokens import TokenService
 
-
 config = Settings() # pyright: ignore[reportCallIssue]
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class CredentialsService:
     def __init__(
         self,
-        request: Request,
-        user_repo: UserInterface,
-        token_service: TokenService,
         uow: UoW,
+        user_repo: UserInterface,
+        token_service: TokenService,        
     ):
+        self.uow = uow
         self.user_repo = user_repo
         self.token_service = token_service
-        self.uow = uow
-        self.request = request
         
     @staticmethod
-    def _check_password(password: str, password_hash: bytes) -> bool:
+    async def _check_password(password: str, password_hash: str) -> bool:
         try:
-            valid = pwd_context.verify(password.encode(), password_hash)
+            valid = await verify_password(password, password_hash)
             if not valid:
                 raise WrongCredentials()
         except ValueError:
@@ -42,8 +38,8 @@ class CredentialsService:
         return valid
         
     @staticmethod
-    def _hash_password(password: str) -> bytes:
-        return pwd_context.hash(password).encode()
+    async def _hash_password(password: str) -> str:
+        return await hash_password(password)
     
     
     async def register(
@@ -52,13 +48,13 @@ class CredentialsService:
         src: Literal['web', 'mobile']
     ) -> tuple[str, str, str]:
         
-        password_hash = self._hash_password(payload.password)
+        password_hash = await self._hash_password(payload.password)
 
         user = User(
             email=payload.email,
             password_hash=password_hash,
             # allow_password_login=True,
-            username=payload.username
+            username=payload.username,
         )
         
         await self.user_repo.add(user)
@@ -81,7 +77,10 @@ class CredentialsService:
         if user is None:
             raise WrongCredentials()
 
-        self._check_password(payload.password, user.password_hash)
+        await self._check_password(payload.password, user.password_hash)
+        
+        if await needs_rehash(user.password_hash):
+            user.password_hash = await self._hash_password(payload.password)
         
         access, refresh, csrf = await self.token_service.issue_tokens(user.id, src)
         return access, refresh, csrf

@@ -5,7 +5,6 @@ from sqlalchemy import select, and_, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .users_table import User
-from domain.users import Gender
 
 
 class UserInterface:
@@ -34,9 +33,6 @@ class UserInterface:
         self,
         *,
         banned: bool | None = None,
-        gender: Gender | None = None,
-        min_birth_date: date | None = None,
-        max_birth_date: date | None = None,
         search: str | None = None,
         limit: int = 50,
         cursor_created_at: datetime | None = None,
@@ -46,12 +42,6 @@ class UserInterface:
 
         if banned is not None:
             stmt = stmt.where(User.banned == banned)
-        if gender is not None:
-            stmt = stmt.where(User.gender == gender)
-        if min_birth_date is not None:
-            stmt = stmt.where(User.birth_date >= min_birth_date)
-        if max_birth_date is not None:
-            stmt = stmt.where(User.birth_date <= max_birth_date)
         if search:
             pattern = f"%{search}%"
             stmt = stmt.where(or_(User.username.ilike(pattern), User.email.ilike(pattern)))

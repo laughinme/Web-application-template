@@ -17,7 +17,7 @@ config = Settings() # pyright: ignore[reportCallIssue]
     summary='Update user profile picture'
 )
 async def update_profile(
-    file: Annotated[UploadFile, File(..., description="JPEG or PNG files")],
+    file: Annotated[UploadFile, File(..., description=f"JPEG or PNG files (max {config.MAX_PHOTO_SIZE} MB)")],
     user: Annotated[User, Depends(auth_user)],
     svc: Annotated[UserService, Depends(get_user_service)],
 ):

@@ -20,6 +20,13 @@ class Settings(BaseSettings):
     API_PORT: int = 8080
     API_HOST: str = '0.0.0.0'
     
+    # Site data (url, paths)
+    SITE_URL: str = ''
+    
+    # Media settings
+    MEDIA_DIR: str = 'media'
+    MAX_PHOTO_SIZE: int # in MB
+    
     # Auth Settings    
     JWT_PRIVATE_KEY: str
     JWT_PUBLIC_KEY: str
@@ -31,10 +38,6 @@ class Settings(BaseSettings):
     # Database settings
     DATABASE_URL: str
     REDIS_URL: str
-
-    # Site data (url, paths)
-    SITE_URL: str = ''
-    MEDIA_DIR: str = 'media'
 
 
 def configure_logging():

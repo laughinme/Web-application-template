@@ -1,11 +1,10 @@
 from uuid import UUID, uuid4
 from datetime import datetime, date
 from sqlalchemy.orm import mapped_column, Mapped, relationship
-from sqlalchemy import ForeignKey, Integer, Uuid, String, Boolean, DateTime, Float, Date, false
-from sqlalchemy.dialects.postgresql import BYTEA, ENUM
+from sqlalchemy import ForeignKey, Uuid, String, Boolean, DateTime, Date, false, Text, Index, func, extract, case
+from sqlalchemy.dialects.postgresql import ENUM
 from sqlalchemy.ext.hybrid import hybrid_property
 
-from domain.users import Gender
 from ..table_base import Base
 from ..mixins import TimestampMixin
 
@@ -17,7 +16,7 @@ class User(TimestampMixin, Base):
     
     # Credentials
     email: Mapped[str] = mapped_column(String, nullable=False, unique=True)
-    password_hash: Mapped[bytes] = mapped_column(BYTEA, nullable=False)
+    password_hash: Mapped[str] = mapped_column(Text, nullable=False)
     confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     
     # Profile info
@@ -25,7 +24,6 @@ class User(TimestampMixin, Base):
     profile_pic_url: Mapped[str | None] = mapped_column(String, nullable=True)
     bio: Mapped[str | None] = mapped_column(String, nullable=True)
     birth_date: Mapped[date | None] = mapped_column(Date, nullable=True)
-    gender: Mapped[Gender | None] = mapped_column(ENUM(Gender), nullable=True)
     language_code: Mapped[str | None] = mapped_column(
         String(2), ForeignKey('languages.code'), nullable=True
     )
@@ -49,9 +47,24 @@ class User(TimestampMixin, Base):
     @age.expression
     @classmethod
     def age_expr(cls):
-        from sqlalchemy import func, extract, case
         today = func.current_date()
         return case(
             (cls.birth_date.is_(None), None),
             else_=extract('year', func.age(today, cls.birth_date))
         )
+
+    __table_args__ = (
+        # GIN trigram indexes for fast text search
+        Index(
+            'users_username_trgm',
+            'username',
+            postgresql_using='gin',
+            postgresql_ops={'username': 'gin_trgm_ops'}
+        ),
+        Index(
+            'users_email_trgm',
+            'email',
+            postgresql_using='gin',
+            postgresql_ops={'email': 'gin_trgm_ops'}
+        ),
+    )

@@ -4,7 +4,6 @@ from datetime import date
 from uuid import UUID
 
 from domain.common import TimestampModel
-from ..enums import Gender
 
 class UserModel(TimestampModel):
     """User account representation."""
@@ -16,7 +15,6 @@ class UserModel(TimestampModel):
     bio: str | None = Field(None)
     birth_date: date | None = Field(None)
     age: int | None = Field(None)
-    gender: Gender | None = Field(None)
     language_code: Annotated[str, constr(min_length=2, max_length=2)] | None = Field(None)
     
     is_onboarded: bool
@@ -28,5 +26,4 @@ class UserPatch(BaseModel):
     profile_pic_url: str | None = Field(None)
     bio: str | None = Field(None)
     birth_date: date | None = Field(None)
-    gender: Gender | None = Field(None)
     language_code: Annotated[str, constr(min_length=2, max_length=2)] | None = Field(None)

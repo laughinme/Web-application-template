@@ -11,12 +11,11 @@ from ..tokens import TokenService, get_token_service
 
 
 async def get_credentials_service(
-    request: Request,
     uow: Annotated[UoW, Depends(get_uow)],
     token_service: Annotated[TokenService, Depends(get_token_service)],
 ) -> CredentialsService:
     user_repo = UserInterface(uow.session)
 
     return CredentialsService(
-        request, user_repo, token_service, uow
+        uow, user_repo, token_service
     )
