@@ -1,0 +1,98 @@
+import React from "react";
+import { useAuth } from "./context/useAuth.js";
+import AuthPage from "./components/auth/AuthPage.jsx";
+
+function App() {
+  const authData = useAuth();
+
+  
+  if (!authData) {
+   
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-red-100">
+        <div className="p-8 bg-white rounded-lg shadow-md text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-2">Ошибка конфигурации</h1>
+          <p className="text-slate-700">
+            Контекст аутентификации не найден. Убедитесь, что ваше приложение обернуто в <code>&lt;AuthProvider&gt;</code>.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const { user, isUserLoading, logout, isRestoringSession } = authData;
+
+  const handleLogout = () => {
+    logout();
+  };
+
+  if (isRestoringSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <p className="text-lg text-slate-500">Загрузка сессии...</p>
+      </div>
+    );
+  }
+
+  if (isUserLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <p className="text-lg text-slate-500">Загрузка пользователя...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthPage />;
+  }
+  
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white text-slate-800">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
+            <h1 className="text-4xl font-bold mb-4">Добро пожаловать!</h1>
+            <p className="text-lg mb-6">Вы вошли как: <strong>{user.email}</strong></p>
+            <button
+                onClick={handleLogout}
+                className="btn primary"
+            >
+                Выйти
+            </button>
+        </main>
+    </div>
+  );
+}
+
+const styles = `
+.input { @apply px-3 py-2 border rounded-2xl outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-500 transition; }
+.btn { @apply inline-flex items-center justify-center px-3 py-2 rounded-2xl border text-sm font-medium transition active:translate-y-[1px]; }
+.btn.primary { @apply border-sky-700 bg-sky-600 text-white hover:bg-sky-700 shadow-md shadow-sky-600/20; }
+.btn.secondary { @apply border-slate-300 bg-white hover:bg-slate-50; }
+
+/* Анимации для страницы аутентификации */
+@keyframes blob {
+  0% { transform: translate(0px, 0px) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+  100% { transform: translate(0px, 0px) scale(1); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+.animate-blob { animation: blob 7s infinite; }
+.animation-delay-2000 { animation-delay: 2s; }
+.animation-delay-4000 { animation-delay: 4s; }
+.animate-float { animation: float 6s ease-in-out infinite; }
+.backdrop-blur-lg { backdrop-filter: blur(16px); }
+`;
+
+const StyleInjector = () => <style dangerouslySetInnerHTML={{ __html: styles }} />;
+
+export default function WrappedApp() {
+  return (
+    <>
+      <StyleInjector />
+      <App />
+    </>
+  );
+}
