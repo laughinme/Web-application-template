@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as api from '../api';
-import { setAccessToken as setAxiosAccessToken, apiPublic } from '../api/axiosInstance.js';
+import { setAccessToken as setAxiosAccessToken, apiPublic, setUnauthorizedHandler as setAxiosUnauthorizedHandler } from '../api/axiosInstance.js';
 import { AuthContext } from './AuthContextObject.js';
 
 export const AuthProvider = ({ children }) => {
@@ -9,9 +9,20 @@ export const AuthProvider = ({ children }) => {
     const [accessToken, setAccessToken] = useState(null);
     const [isRestoringSession, setIsRestoringSession] = useState(true);
 
+    const clearSession = useCallback(() => {
+        setAccessToken(null);
+        setAxiosAccessToken(null);
+        queryClient.removeQueries({ queryKey: ['me'] });
+    }, [queryClient]);
+
     useEffect(() => {
         setAxiosAccessToken(accessToken);
     }, [accessToken]);
+
+    useEffect(() => {
+        setAxiosUnauthorizedHandler(clearSession);
+        return () => setAxiosUnauthorizedHandler(null);
+    }, [clearSession]);
 
     const { data: user, isLoading: isUserLoading, isError } = useQuery({
         queryKey: ['me'],
@@ -27,7 +38,7 @@ export const AuthProvider = ({ children }) => {
         retry: 1,
         onError: (err) => {
             console.error("Ошибка useQuery('me'): Не удалось загрузить профиль. Выход из системы.", err);
-            setAccessToken(null);
+            clearSession();
         }
     });
 
@@ -55,11 +66,11 @@ export const AuthProvider = ({ children }) => {
     const logoutMutation = useMutation({
         mutationFn: api.logoutUser,
         onSuccess: () => {
-            setAccessToken(null);
+            clearSession();
             queryClient.clear(); 
         },
         onError: () => {
-            setAccessToken(null);
+            clearSession();
             queryClient.clear();
         }
     });

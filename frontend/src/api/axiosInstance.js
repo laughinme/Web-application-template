@@ -11,12 +11,28 @@ export const apiPublic = axios.create({
 });
 
 let accessToken = null;
+let unauthorizedHandler = null;
 
 export const setAccessToken = (token) => {
     accessToken = token;
 };
 
 export const getAccessToken = () => accessToken;
+
+export const setUnauthorizedHandler = (handler) => {
+    unauthorizedHandler = typeof handler === 'function' ? handler : null;
+};
+
+const notifyUnauthorized = () => {
+    setAccessToken(null);
+    if (unauthorizedHandler) {
+        try {
+            unauthorizedHandler();
+        } catch (handlerError) {
+            console.error('[Interceptor] Ошибка обработчика выхода из системы.', handlerError);
+        }
+    }
+};
 
 const apiProtected = axios.create({
     baseURL: BASE_URL,
@@ -57,7 +73,7 @@ apiProtected.interceptors.response.use(
 
                 if (!csrfToken) {
                     console.error('[Interceptor] Не найден CSRF-токен для обновления. Выход из системы.');
-                    setAccessToken(null); 
+                    notifyUnauthorized();
                     return Promise.reject(error);
                 }
 
@@ -80,9 +96,11 @@ apiProtected.interceptors.response.use(
                     };
                     return apiProtected(originalRequest);
                 }
+
+                notifyUnauthorized();
             } catch (refreshError) {
                 console.error('[Interceptor] КРИТИЧЕСКАЯ ОШИБКА: Не удалось обновить токен. Выход из системы.', refreshError);
-                setAccessToken(null); 
+                notifyUnauthorized();
             }
         }
         return Promise.reject(error);
