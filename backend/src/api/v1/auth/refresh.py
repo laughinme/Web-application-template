@@ -53,14 +53,16 @@ async def refresh_tokens(
             max_age=config.REFRESH_TTL,
             httponly=True, 
             secure=True,
-            samesite="lax"
+            samesite="none",
+            path='/',
         )
         response.set_cookie(
             "csrf_token", new_csrf,
             max_age=config.REFRESH_TTL,
             httponly=False, 
             secure=True, 
-            samesite="lax"
+            samesite="none",
+            path='/',
         )
 
         # body: only short-lived access token
