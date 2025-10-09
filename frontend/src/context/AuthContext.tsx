@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as api from "../api";
 import {
@@ -17,6 +17,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const queryClient = useQueryClient();
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isRestoringSession, setIsRestoringSession] = useState<boolean>(true);
+  const hasAttemptedSessionRestore = useRef<boolean>(false);
 
   const clearSession = useCallback((): void => {
     setAccessToken(null);
@@ -92,6 +93,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, [isError, userError, clearSession]);
 
   useEffect(() => {
+    if (hasAttemptedSessionRestore.current) {
+      return;
+    }
+    hasAttemptedSessionRestore.current = true;
+
     (async () => {
       try {
         const csrfToken = document.cookie

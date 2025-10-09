@@ -1,4 +1,5 @@
-import { cn } from "@/lib/utils"
+import { type ComponentProps, type FormEvent, useState } from "react"
+
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -11,14 +12,42 @@ import {
   Field,
   FieldDescription,
   FieldGroup,
+  FieldError,
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { cn } from "@/lib/utils"
+
+type SignupFormProps = ComponentProps<"div"> & {
+  email: string
+  password: string
+  onEmailChange: (value: string) => void
+  onPasswordChange: (value: string) => void
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void
+  submitLabel: string
+  disabled?: boolean
+  submitDisabled?: boolean
+  errorMessage?: string | null
+  onSwitchToLogin: () => void
+}
 
 export function SignupForm({
   className,
+  email,
+  password,
+  onEmailChange,
+  onPasswordChange,
+  onSubmit,
+  submitLabel,
+  disabled = false,
+  submitDisabled = false,
+  errorMessage,
+  onSwitchToLogin,
   ...props
-}: React.ComponentProps<"div">) {
+}: SignupFormProps) {
+  const [fullName, setFullName] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
@@ -29,11 +58,21 @@ export function SignupForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form>
+          <form onSubmit={onSubmit}>
             <FieldGroup>
+              {errorMessage ? <FieldError>{errorMessage}</FieldError> : null}
               <Field>
                 <FieldLabel htmlFor="name">Full Name</FieldLabel>
-                <Input id="name" type="text" placeholder="John Doe" required />
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="John Doe"
+                  required
+                  autoComplete="name"
+                  value={fullName}
+                  onChange={(event) => setFullName(event.target.value)}
+                  disabled={disabled}
+                />
               </Field>
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
@@ -42,19 +81,39 @@ export function SignupForm({
                   type="email"
                   placeholder="m@example.com"
                   required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(event) => onEmailChange(event.target.value)}
+                  disabled={disabled}
                 />
               </Field>
               <Field>
                 <Field className="grid grid-cols-2 gap-4">
                   <Field>
                     <FieldLabel htmlFor="password">Password</FieldLabel>
-                    <Input id="password" type="password" required />
+                    <Input
+                      id="password"
+                      type="password"
+                      required
+                      autoComplete="new-password"
+                      value={password}
+                      onChange={(event) => onPasswordChange(event.target.value)}
+                      disabled={disabled}
+                    />
                   </Field>
                   <Field>
                     <FieldLabel htmlFor="confirm-password">
                       Confirm Password
                     </FieldLabel>
-                    <Input id="confirm-password" type="password" required />
+                    <Input
+                      id="confirm-password"
+                      type="password"
+                      required
+                      autoComplete="new-password"
+                      value={confirmPassword}
+                      onChange={(event) => setConfirmPassword(event.target.value)}
+                      disabled={disabled}
+                    />
                   </Field>
                 </Field>
                 <FieldDescription>
@@ -62,9 +121,18 @@ export function SignupForm({
                 </FieldDescription>
               </Field>
               <Field>
-                <Button type="submit">Create Account</Button>
+                <Button type="submit" disabled={submitDisabled || disabled}>
+                  {submitLabel}
+                </Button>
                 <FieldDescription className="text-center">
-                  Already have an account? <a href="#">Sign in</a>
+                  Already have an account?{" "}
+                  <button
+                    type="button"
+                    onClick={onSwitchToLogin}
+                    className="underline-offset-4 hover:underline"
+                  >
+                    Sign in
+                  </button>
                 </FieldDescription>
               </Field>
             </FieldGroup>
