@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent, type ReactElement } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { useAuth } from "../../context/useAuth";
 import type { AuthCredentials } from "../../types/auth";
 import { LoginForm } from "../login-form";
@@ -80,40 +81,73 @@ export default function AuthPage(): ReactElement {
   };
 
   return (
-    <div className="min-h-screen bg-muted flex items-center justify-center px-4 py-8">
-      <div
-        className={`w-full max-w-md transition-all duration-700 ease-out ${
-          isVisible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
-        }`}
+    <div className="min-h-screen bg-neutral-950 flex items-center justify-center px-4 py-12 text-white overflow-hidden">
+      <motion.div
+        className="absolute inset-0 pointer-events-none"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 0.35 }}
+        transition={{ duration: 1.2, ease: "easeOut" }}
       >
-        {mode === "login" ? (
-          <LoginForm
-            email={email}
-            password={password}
-            onEmailChange={setEmail}
-            onPasswordChange={setPassword}
-            onSubmit={submit}
-            submitLabel={isLoading ? "Загрузка..." : "Login"}
-            disabled={isLoading}
-            submitDisabled={!canSubmit}
-            errorMessage={errorMessage}
-            onSwitchToSignup={() => setMode("register")}
-          />
-        ) : (
-          <SignupForm
-            email={email}
-            password={password}
-            onEmailChange={setEmail}
-            onPasswordChange={setPassword}
-            onSubmit={submit}
-            submitLabel={isLoading ? "Загрузка..." : "Create Account"}
-            disabled={isLoading}
-            submitDisabled={!canSubmit}
-            errorMessage={errorMessage}
-            onSwitchToLogin={() => setMode("login")}
-          />
-        )}
-      </div>
+        <motion.div
+          className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_rgba(0,0,0,0))]"
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 1.2, ease: "easeOut" }}
+        />
+      </motion.div>
+
+      <motion.div
+        className="relative w-full max-w-md"
+        initial={{ opacity: 0, y: 32, scale: 0.96 }}
+        animate={isVisible ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 32, scale: 0.96 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+      >
+        <AnimatePresence mode="wait">
+          {mode === "login" ? (
+            <motion.div
+              key="login"
+              initial={{ opacity: 0, y: 24, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -16, scale: 0.98 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+            >
+              <LoginForm
+                email={email}
+                password={password}
+                onEmailChange={setEmail}
+                onPasswordChange={setPassword}
+                onSubmit={submit}
+                submitLabel={isLoading ? "Загрузка..." : "Login"}
+                disabled={isLoading}
+                submitDisabled={!canSubmit}
+                errorMessage={errorMessage}
+                onSwitchToSignup={() => setMode("register")}
+              />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="signup"
+              initial={{ opacity: 0, y: 24, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -16, scale: 0.98 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+            >
+              <SignupForm
+                email={email}
+                password={password}
+                onEmailChange={setEmail}
+                onPasswordChange={setPassword}
+                onSubmit={submit}
+                submitLabel={isLoading ? "Загрузка..." : "Create Account"}
+                disabled={isLoading}
+                submitDisabled={!canSubmit}
+                errorMessage={errorMessage}
+                onSwitchToLogin={() => setMode("login")}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
     </div>
   );
 }
