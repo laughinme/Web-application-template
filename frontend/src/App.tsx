@@ -1,5 +1,5 @@
-import { useAuth } from "./context/useAuth.js";
-import AuthPage from "./components/auth/AuthPage.jsx";
+import { useAuth } from "./context/useAuth";
+import AuthPage from "./components/auth/AuthPage";
 
 function App() {
   const authData = useAuth();
