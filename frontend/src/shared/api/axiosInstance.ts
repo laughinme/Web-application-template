@@ -6,7 +6,7 @@ import axios, {
   type AxiosResponse,
   type InternalAxiosRequestConfig
 } from "axios";
-import type { AuthTokens } from "../types/auth";
+import type { AuthTokens } from "@/entities/auth/model";
 
 const BASE_URL = "/api/v1";
 

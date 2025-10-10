@@ -1,9 +1,9 @@
 import { useEffect, useState, type FormEvent, type ReactElement } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { useAuth } from "../../context/useAuth";
-import type { AuthCredentials } from "../../types/auth";
-import { LoginForm } from "../login-form";
-import { SignupForm } from "../signup-form";
+import { useAuth } from "@/app/providers/auth/useAuth";
+import type { AuthCredentials } from "@/entities/auth/model";
+import { LoginForm } from "@/features/auth/login-form";
+import { SignupForm } from "@/features/auth/signup-form";
 
 type Mode = "login" | "register";
 

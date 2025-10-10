@@ -1,22 +1,22 @@
 import { type ComponentProps, type FormEvent } from "react"
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/shared/ui/button"
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/shared/ui/card"
 import {
   Field,
   FieldDescription,
   FieldGroup,
   FieldError,
   FieldLabel,
-} from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import { cn } from "@/lib/utils"
+} from "@/shared/ui/field"
+import { Input } from "@/shared/ui/input"
+import { cn } from "@/shared/lib/utils"
 
 type SignupFormProps = ComponentProps<"div"> & {
   email: string
