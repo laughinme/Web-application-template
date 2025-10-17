@@ -1,2 +1,2 @@
-from .profile import UserModel, UserPatch
+from .profile import UserModel, UserPatch, UserRolesUpdate
 from .shareable import UserShare, UserBrief
