@@ -25,4 +25,6 @@ export interface AuthContextValue {
   loginError: unknown;
   isRegistering: boolean;
   registerError: unknown;
+  csrfWarning: string | null;
+  dismissCsrfWarning: () => void;
 }

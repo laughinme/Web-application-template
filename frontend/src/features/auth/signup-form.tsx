@@ -18,12 +18,12 @@ import {
 import { Input } from "@/shared/ui/input"
 import { cn } from "@/shared/lib/utils"
 
-type SignupFormProps = ComponentProps<"div"> & {
+type SignupFormProps = Omit<ComponentProps<"div">, "onSubmit"> & {
   email: string
   password: string
   onEmailChange: (value: string) => void
   onPasswordChange: (value: string) => void
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void | Promise<void>
   submitLabel: string
   disabled?: boolean
   submitDisabled?: boolean

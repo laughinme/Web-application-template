@@ -3,7 +3,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import { AuthProvider } from "./providers/auth/AuthContext";
-import "./styles/index.css";
+import "../index.css";
 
 const queryClient = new QueryClient();
 const rootElement = document.getElementById("root");

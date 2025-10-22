@@ -8,7 +8,7 @@ import axios, {
 } from "axios";
 import type { AuthTokens } from "@/entities/auth/model";
 import { withBasePath } from "@/shared/lib/utils";
-
+import { resolveCsrfToken } from "../lib/csrf";
 const DEFAULT_API_PATH = "/api/v1";
 const BASE_URL = withBasePath(
   import.meta.env.VITE_API_BASE_URL as string | undefined,
@@ -25,6 +25,7 @@ export const apiPublic: AxiosInstance = axios.create({
 
 let accessToken: string | null = null;
 let unauthorizedHandler: (() => void) | null = null;
+let csrfMissingHandler: (() => void) | null = null;
 
 export const setAccessToken = (token: string | null): void => {
   accessToken = token;
@@ -34,6 +35,10 @@ export const getAccessToken = (): string | null => accessToken;
 
 export const setUnauthorizedHandler = (handler: (() => void) | null): void => {
   unauthorizedHandler = typeof handler === "function" ? handler : null;
+};
+
+export const setCsrfMissingHandler = (handler: (() => void) | null): void => {
+  csrfMissingHandler = typeof handler === "function" ? handler : null;
 };
 
 const notifyUnauthorized = (): void => {
@@ -47,13 +52,14 @@ const notifyUnauthorized = (): void => {
   }
 };
 
-const getCsrfToken = (): string | null => {
-  const csrfCookie = document.cookie
-    .split(";")
-    .map((cookie) => cookie.trim())
-    .find((cookie) => cookie.startsWith("csrf_token="));
-
-  return csrfCookie ? decodeURIComponent(csrfCookie.split("=")[1]) : null;
+const notifyCsrfMissing = (): void => {
+  if (csrfMissingHandler) {
+    try {
+      csrfMissingHandler();
+    } catch (handlerError) {
+      console.error("[Interceptor] Ошибка обработчика отсутствующего CSRF-токена.", handlerError);
+    }
+  }
 };
 
 const toAxiosHeaders = (headers?: AxiosRequestHeaders): AxiosHeaders => {
@@ -99,10 +105,11 @@ apiProtected.interceptors.response.use(
       try {
         console.log("[Interceptor] Перехвачена ошибка 401. Пытаемся обновить токен...");
 
-        const csrfToken = getCsrfToken();
+        const csrfToken = await resolveCsrfToken();
 
         if (!csrfToken) {
           console.error("[Interceptor] Не найден CSRF-токен для обновления. Выход из системы.");
+          notifyCsrfMissing();
           notifyUnauthorized();
           return Promise.reject(error);
         }

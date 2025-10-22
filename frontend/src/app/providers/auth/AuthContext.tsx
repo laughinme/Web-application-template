@@ -4,10 +4,41 @@ import * as api from "@/shared/api";
 import {
   apiPublic,
   setAccessToken as setAxiosAccessToken,
-  setUnauthorizedHandler as setAxiosUnauthorizedHandler
+  setUnauthorizedHandler as setAxiosUnauthorizedHandler,
+  setCsrfMissingHandler as setAxiosCsrfMissingHandler
 } from "@/shared/api/axiosInstance";
+import { resolveCsrfToken } from "@/shared/lib/csrf";
 import { AuthContext } from "./AuthContextObject";
 import type { AuthContextValue, AuthCredentials, AuthTokens, AuthUser } from "@/entities/auth/model";
+
+const SKIP_SESSION_RESTORE_STORAGE_KEY = "auth:skip-session-restore";
+
+const readSkipSessionRestoreFlag = (): boolean => {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  try {
+    return window.sessionStorage.getItem(SKIP_SESSION_RESTORE_STORAGE_KEY) === "1";
+  } catch (error) {
+    console.warn("[Auth] Не удалось прочитать флаг пропуска восстановления сессии.", error);
+    return false;
+  }
+};
+
+const writeSkipSessionRestoreFlag = (value: boolean): void => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    if (value) {
+      window.sessionStorage.setItem(SKIP_SESSION_RESTORE_STORAGE_KEY, "1");
+    } else {
+      window.sessionStorage.removeItem(SKIP_SESSION_RESTORE_STORAGE_KEY);
+    }
+  } catch (error) {
+    console.warn("[Auth] Не удалось записать флаг пропуска восстановления сессии.", error);
+  }
+};
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -17,13 +48,28 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const queryClient = useQueryClient();
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isRestoringSession, setIsRestoringSession] = useState<boolean>(true);
+  const [csrfWarning, setCsrfWarning] = useState<string | null>(null);
   const hasAttemptedSessionRestore = useRef<boolean>(false);
+  const skipSessionRestoreRef = useRef<boolean>(readSkipSessionRestoreFlag());
 
   const clearSession = useCallback((): void => {
     setAccessToken(null);
     setAxiosAccessToken(null);
     queryClient.removeQueries({ queryKey: ["me"] });
   }, [queryClient]);
+
+  const dismissCsrfWarning = useCallback((): void => {
+    setCsrfWarning(null);
+  }, []);
+
+  const reportCsrfMissing = useCallback((): void => {
+    setCsrfWarning("Не удалось получить CSRF-токен. Пожалуйста, выполните вход заново.");
+  }, []);
+
+  const setSkipSessionRestore = useCallback((value: boolean): void => {
+    skipSessionRestoreRef.current = value;
+    writeSkipSessionRestoreFlag(value);
+  }, []);
 
   useEffect(() => {
     setAxiosAccessToken(accessToken);
@@ -33,6 +79,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setAxiosUnauthorizedHandler(clearSession);
     return () => setAxiosUnauthorizedHandler(null);
   }, [clearSession]);
+
+  useEffect(() => {
+    setAxiosCsrfMissingHandler(reportCsrfMissing);
+    return () => setAxiosCsrfMissingHandler(null);
+  }, [reportCsrfMissing]);
+
+  useEffect(() => {
+    if (accessToken) {
+      setCsrfWarning(null);
+      if (skipSessionRestoreRef.current) {
+        setSkipSessionRestore(false);
+      }
+    }
+  }, [accessToken, setSkipSessionRestore]);
 
   const {
     data: user,
@@ -58,6 +118,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     onSuccess: (data) => {
       if (data?.access_token) {
         setAccessToken(data.access_token);
+        setSkipSessionRestore(false);
       }
       queryClient.invalidateQueries({ queryKey: ["me"] });
     }
@@ -68,6 +129,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     onSuccess: (data) => {
       if (data?.access_token) {
         setAccessToken(data.access_token);
+        setSkipSessionRestore(false);
       }
       queryClient.invalidateQueries({ queryKey: ["me"] });
     }
@@ -85,6 +147,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   });
 
+  const handleLogout = useCallback((): void => {
+    setSkipSessionRestore(true);
+    logoutMutation.mutate();
+  }, [logoutMutation, setSkipSessionRestore]);
+
   useEffect(() => {
     if (isError) {
       console.error("Ошибка useQuery('me'): Не удалось загрузить профиль. Выход из системы.", userError);
@@ -98,19 +165,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
     hasAttemptedSessionRestore.current = true;
 
+    if (skipSessionRestoreRef.current) {
+      console.log("[Auth] Пропускаем восстановление сессии после явного выхода.");
+      setIsRestoringSession(false);
+      return;
+    }
+
     (async () => {
       try {
-        const csrfToken = document.cookie
-          .split(";")
-          .map((cookie) => cookie.trim())
-          .find((cookie) => cookie.startsWith("csrf_token="))
-          ?.split("=")
-          .at(1);
+        const csrfToken = await resolveCsrfToken();
 
-        const decodedCsrfToken = csrfToken ? decodeURIComponent(csrfToken) : null;
-
-        if (!decodedCsrfToken) {
+        if (!csrfToken) {
           console.log("[Auth] CSRF-токен не найден, прекращаем попытку восстановления.");
+          reportCsrfMissing();
           return;
         }
 
@@ -118,13 +185,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           "/auth/refresh",
           {},
           {
-            headers: { "X-CSRF-Token": decodedCsrfToken },
+            headers: { "X-CSRF-Token": csrfToken },
             withCredentials: true
           }
         );
 
         if (data?.access_token) {
           setAccessToken(data.access_token);
+          setSkipSessionRestore(false);
         }
       } catch (err) {
         console.error("[Auth] Ошибка при запросе на /auth/refresh:", err);
@@ -140,11 +208,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     isRestoringSession,
     login: loginMutation.mutateAsync,
     register: registerMutation.mutateAsync,
-    logout: () => logoutMutation.mutate(),
+    logout: handleLogout,
     isLoggingIn: loginMutation.isPending,
     loginError: loginMutation.error,
     isRegistering: registerMutation.isPending,
-    registerError: registerMutation.error
+    registerError: registerMutation.error,
+    csrfWarning,
+    dismissCsrfWarning
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
