@@ -44,12 +44,17 @@ async def ping():
 
 
 # Adding middlewares
+allowed_origins = [
+    "http://localhost:5173",
+    "https://localhost:5173",
+]
+
+if config.SITE_URL:
+    allowed_origins.append(config.SITE_URL)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "https://localhost:5173",
-    ],
+    allow_origins=allowed_origins,
     allow_methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allow_headers=['X-CSRF-Token', 'X-Requested-With', 'Accept', 'Content-Type', 'Authorization', 'X-Client'],
     allow_credentials=True,

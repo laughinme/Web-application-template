@@ -1,30 +1,39 @@
 import tailwindcss from "@tailwindcss/vite";
 import basicSsl from "@vitejs/plugin-basic-ssl";
 import react from "@vitejs/plugin-react";
+import type { PluginOption } from "vite";
 import { defineConfig } from "vite";
-import path from "path"
+import path from "path";
 
-const STRIPE_PUBLISHABLE_KEY = "pk_test_51RxrAwPtCxyTWU2nOrPPJQU6pbhCKsox9yXMJfl9sE3BRuLDISQVpFgGtkqNAkJHhFyUvpzG6IYKUFZjKWawOTyx00nla8B24Y";
+export default defineConfig(() => {
+  const enableHttps = process.env.VITE_ENABLE_HTTPS !== "false";
+  const proxyTarget = process.env.VITE_PROXY_TARGET ?? "https://localhost";
 
-export default defineConfig({
-  plugins: [tailwindcss(), react(), basicSsl()],
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
-  },
-  define: {
-    "import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY": JSON.stringify(STRIPE_PUBLISHABLE_KEY)
-  },
-  server: {
-    https: {},
-    proxy: {
-      "/api/v1": {
-        target: "https://backend-auto-spare-parts.fly.dev",
-        changeOrigin: true,
-        secure: true,
-        followRedirects: true
-      }
-    }
+  const plugins: PluginOption[] = [tailwindcss(), react()];
+  if (enableHttps) {
+    plugins.push(basicSsl());
   }
+
+  return {
+    plugins,
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "./src")
+      }
+    },
+    server: {
+      https: enableHttps ? {} : false,
+      proxy: {
+        "/api": {
+          target: proxyTarget,
+          changeOrigin: true,
+          secure: false,
+          followRedirects: true
+        }
+      }
+    },
+    preview: {
+      https: enableHttps ? {} : false
+    }
+  };
 });

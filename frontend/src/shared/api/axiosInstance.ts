@@ -7,8 +7,13 @@ import axios, {
   type InternalAxiosRequestConfig
 } from "axios";
 import type { AuthTokens } from "@/entities/auth/model";
+import { withBasePath } from "@/shared/lib/utils";
 
-const BASE_URL = "/api/v1";
+const DEFAULT_API_PATH = "/api/v1";
+const BASE_URL = withBasePath(
+  import.meta.env.VITE_API_BASE_URL as string | undefined,
+  DEFAULT_API_PATH
+);
 
 export const apiPublic: AxiosInstance = axios.create({
   baseURL: BASE_URL,

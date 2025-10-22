@@ -7,19 +7,52 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      - DB_HOST=db
-      - DB_PORT=5432
-      - REDIS_HOST=redis
-    ports:
-      - "8080:8080"
+      API_HOST: 0.0.0.0
+      API_PORT: 8080
+      SITE_URL: https://localhost
+      DATABASE_URL: postgresql+asyncpg://postgres:secret@db:5432/hackathon
+      REDIS_URL: redis://redis:6379/0
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
+    restart: unless-stopped
+
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+      args:
+        VITE_API_BASE_URL: https://localhost
+        VITE_ENABLE_HTTPS: "false"
+    container_name: nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      backend:
+        condition: service_started
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: hackathon
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
   redis:
-    image: redis:latest
+    image: redis:7-alpine
     container_name: redis_service
     volumes:
       - redis_data:/data
@@ -28,20 +61,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
-
-  db:
-    image: postgres:latest
-    environment:
-      POSTGRES_USER: "postgres"
-      POSTGRES_PASSWORD: "secret"
-      POSTGRES_DB: "hackathon"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
+    restart: unless-stopped
 
 volumes:
   postgres_data:

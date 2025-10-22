@@ -186,3 +186,7 @@ secrets/
 /backend/src/media
 test.py
 /.vscode
+
+# Allow tracked frontend shared utilities
+!frontend/src/shared/lib/
+!frontend/src/shared/lib/**

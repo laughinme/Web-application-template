@@ -16,6 +16,7 @@ from database.relational_db import (
     UserInterface,
     UoW,
     User,
+    Role,
 )
 
 settings = Settings()  # type: ignore

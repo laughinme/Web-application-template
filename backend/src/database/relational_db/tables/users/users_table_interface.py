@@ -1,12 +1,12 @@
 from uuid import UUID
 from datetime import date, datetime, timedelta
 from pydantic import EmailStr
-from sqlalchemy import select, and_, or_, func
+from sqlalchemy import select, and_, or_, func, delete, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from .users_table import User
-from ..roles.roles_table import Role
+from ..roles import Role, UserRole
 
 
 class UserInterface:
@@ -70,7 +70,19 @@ class UserInterface:
         return list(rows.all())
 
     async def assign_roles(self, user: User, roles: list[Role]) -> User:
-        user.roles = roles
+        await self.session.execute(
+            delete(UserRole).where(UserRole.user_id == user.id)
+        )
+        
+        if roles:
+            role_data = [
+                {"user_id": user.id, "role_id": role.id} 
+                for role in roles
+            ]
+            await self.session.execute(
+                insert(UserRole).values(role_data)
+            )
+        
         await self.session.flush()
         return user
 
