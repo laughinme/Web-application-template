@@ -7,15 +7,19 @@ from pathlib import Path
 from fastapi import UploadFile, status, HTTPException
 
 from core.config import Settings
+from core.rbac import permissions_cache_key
+from database.redis import CacheRepo
 from domain.users import UserPatch
 from database.relational_db import (
-    UoW,
-    UserInterface, 
-    User,
     LanguagesInterface,
+    RolesInterface,
+    UserInterface,
+    UoW,
+    User,
 )
 
-settings = Settings() # type: ignore
+settings = Settings()  # type: ignore
+
 
 class UserService:
     def __init__(
@@ -23,10 +27,14 @@ class UserService:
         uow: UoW,
         user_repo: UserInterface,
         lang_repo: LanguagesInterface,
+        role_repo: RolesInterface,
+        cache_repo: CacheRepo | None = None,
     ):
         self.uow = uow
         self.user_repo = user_repo
         self.lang_repo = lang_repo
+        self.role_repo = role_repo
+        self.cache_repo = cache_repo
         
     async def get_user(self, user_id: UUID | str) -> User | None:
         return await self.user_repo.get_by_id(user_id)
@@ -123,10 +131,48 @@ class UserService:
         return users, next_cursor
 
     async def admin_set_ban(self, target: User, banned: bool) -> User:
+        previous_version = target.auth_version
         target.banned = banned
+        target.bump_auth_version()
         await self.uow.commit()
         await self.uow.session.refresh(target)
+        await self._invalidate_permissions_cache(target.id, previous_version)
         return target
 
     async def list_languages(self, search: str, limit: int):
         return await self.lang_repo.search(search, limit)
+
+    async def admin_assign_roles(
+        self,
+        target: User,
+        role_slugs: list[str],
+    ) -> User:
+        unique_slugs = list(dict.fromkeys(role_slugs))
+        roles = await self.role_repo.get_by_slugs(unique_slugs)
+        found_slugs = {role.slug for role in roles}
+        missing = [slug for slug in unique_slugs if slug not in found_slugs]
+        if missing:
+            missing_sorted = ", ".join(sorted(missing))
+            raise HTTPException(
+                status.HTTP_404_NOT_FOUND,
+                detail=f"Unknown roles: {missing_sorted}",
+            )
+
+        previous_version = target.auth_version
+        await self.user_repo.assign_roles(target, roles)
+        target.bump_auth_version()
+        await self.uow.commit()
+        await self.uow.session.refresh(target)
+
+        await self._invalidate_permissions_cache(target.id, previous_version)
+        return target
+
+    async def _invalidate_permissions_cache(
+        self,
+        user_id: UUID | str,
+        previous_version: int | None,
+    ) -> None:
+        if not self.cache_repo or previous_version is None:
+            return
+        cache_key = permissions_cache_key(user_id, previous_version)
+        await self.cache_repo.delete(cache_key)

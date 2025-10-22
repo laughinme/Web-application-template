@@ -3,8 +3,10 @@ from datetime import date, datetime, timedelta
 from pydantic import EmailStr
 from sqlalchemy import select, and_, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from .users_table import User
+from ..roles.roles_table import Role
 
 
 class UserInterface:
@@ -16,9 +18,14 @@ class UserInterface:
         return user
     
     async def get_by_id(self, id: UUID | str) -> User | None:
-        user = await self.session.scalar(
-            select(User).where(User.id == id)
+        stmt = (
+            select(User)
+            .where(User.id == id)
+            .options(
+                selectinload(User.roles).selectinload(Role.permissions)
+            )
         )
+        user = await self.session.scalar(stmt)
         
         return user
     
@@ -38,7 +45,9 @@ class UserInterface:
         cursor_created_at: datetime | None = None,
         cursor_id: UUID | None = None,
     ) -> list[User]:
-        stmt = select(User)
+        stmt = select(User).options(
+            selectinload(User.roles).selectinload(Role.permissions)
+        )
 
         if banned is not None:
             stmt = stmt.where(User.banned == banned)
@@ -59,6 +68,11 @@ class UserInterface:
 
         rows = await self.session.scalars(stmt)
         return list(rows.all())
+
+    async def assign_roles(self, user: User, roles: list[Role]) -> User:
+        user.roles = roles
+        await self.session.flush()
+        return user
 
     async def registrations_by_days(self, days: int):
         day = func.date_trunc('day', User.created_at)

@@ -3,11 +3,13 @@ from fastapi import Request
 from sqlalchemy.exc import IntegrityError
 
 from database.relational_db import (
+    RolesInterface,
     UserInterface,
     User,
     UoW,
 )
 from domain.auth import UserRegister, UserLogin
+from domain.auth.enums import DEFAULT_ROLE
 from core.config import Settings
 from core.crypto import hash_password, verify_password, needs_rehash
 from .exceptions import AlreadyExists, WrongCredentials
@@ -20,10 +22,12 @@ class CredentialsService:
         self,
         uow: UoW,
         user_repo: UserInterface,
-        token_service: TokenService,        
+        role_repo: RolesInterface,
+        token_service: TokenService,
     ):
         self.uow = uow
         self.user_repo = user_repo
+        self.role_repo = role_repo
         self.token_service = token_service
         
     @staticmethod
@@ -58,13 +62,19 @@ class CredentialsService:
         )
         
         await self.user_repo.add(user)
+
+        default_role = await self.role_repo.get_by_slug(DEFAULT_ROLE.value)
+        if default_role is None:
+            raise RuntimeError("Default role is missing from the database")
+
+        await self.user_repo.assign_roles(user, [default_role])
         
         try:
             await self.uow.session.flush()
         except IntegrityError as e:
             raise AlreadyExists()
-        
-        access, refresh, csrf = await self.token_service.issue_tokens(user.id, src)
+
+        access, refresh, csrf = await self.token_service.issue_tokens(user, src)
         return access, refresh, csrf
     
     
@@ -82,7 +92,7 @@ class CredentialsService:
         if await needs_rehash(user.password_hash):
             user.password_hash = await self._hash_password(payload.password)
         
-        access, refresh, csrf = await self.token_service.issue_tokens(user.id, src)
+        access, refresh, csrf = await self.token_service.issue_tokens(user, src)
         return access, refresh, csrf
     
     
