@@ -1,5 +1,6 @@
+import { BrowserRouter } from "react-router-dom";
 import { useAuth } from "@/app/providers/auth/useAuth";
-import AuthPage from "@/pages/auth/ui/AuthPage";
+import { AppRoutes } from "@/app/routes/AppRoutes";
 
 function App() {
   const authData = useAuth();
@@ -20,18 +21,11 @@ function App() {
   }
 
   const {
-    user,
     isUserLoading,
-    logout,
     isRestoringSession,
     csrfWarning,
     dismissCsrfWarning
   } = authData;
-
-  const handleLogout = () => {
-    dismissCsrfWarning();
-    logout();
-  };
 
   if (isRestoringSession) {
     return (
@@ -49,38 +43,40 @@ function App() {
     );
   }
 
-  if (!user) {
-    return <AuthPage />;
-  }
-  
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white text-slate-800">
-      {csrfWarning ? (
-        <div className="bg-amber-50 border-b border-amber-200 text-amber-800">
-          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-            <span className="text-sm sm:text-base">{csrfWarning}</span>
-            <button
-              type="button"
-              onClick={dismissCsrfWarning}
-              className="rounded-md border border-amber-300 bg-white px-3 py-1 text-xs font-medium text-amber-700 transition hover:bg-amber-100"
-            >
-              Скрыть
-            </button>
-          </div>
-        </div>
-      ) : null}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
-        <h1 className="text-4xl font-bold mb-4">Добро пожаловать!</h1>
-        <p className="text-lg mb-6">
-          Вы вошли как: <strong>{user.email}</strong>
-        </p>
-        <button onClick={handleLogout} className="btn primary">
-          Выйти
-        </button>
-      </main>
-    </div>
+    <BrowserRouter>
+      <CsrfWarningBanner message={csrfWarning} onDismiss={dismissCsrfWarning} />
+      <AppRoutes />
+    </BrowserRouter>
   );
 }
+
+const CsrfWarningBanner = ({
+  message,
+  onDismiss
+}: {
+  message: string | null;
+  onDismiss: () => void;
+}) => {
+  if (!message) {
+    return null;
+  }
+
+  return (
+    <div className="bg-amber-50 border-b border-amber-200 text-amber-800">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+        <span className="text-sm sm:text-base">{message}</span>
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="rounded-md border border-amber-300 bg-white px-3 py-1 text-xs font-medium text-amber-700 transition hover:bg-amber-100"
+        >
+          Скрыть
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const styles = `
 .input { @apply px-3 py-2 border rounded-2xl outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-500 transition; }
