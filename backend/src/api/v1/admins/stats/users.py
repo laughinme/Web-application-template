@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, Query
 from database.relational_db import User
 from domain.statistics import ActiveUsersGraph, RegistrationsGraph
 from core.config import Settings
-from core.security import require_permissions
-from domain.auth.enums import SystemPermission
+from core.security import require
+# from domain.auth.enums import SystemPermission
 from service.statistics import StatService, get_stats_service
 
 router = APIRouter()
@@ -18,7 +18,7 @@ config = Settings() # pyright: ignore[reportCallIssue]
 #     summary='Get graph data for active users by days',
 # )
 # async def active_users(
-#     _: Annotated[User, Depends(auth_admin)],
+#     _: Annotated[User, Depends(require('admin'))],
 #     svc: Annotated[StatService, Depends(get_stats_service)],
 #     days: int = Query(30, description='Number of days back to retrieve data for'),
 # ):
@@ -30,7 +30,7 @@ config = Settings() # pyright: ignore[reportCallIssue]
     summary='Get graph data for new registrations by days',
 )
 async def registrations(
-    _: Annotated[User, Depends(require_permissions(SystemPermission.USERS_READ))],
+    _: Annotated[User, Depends(require('admin'))],
     svc: Annotated[StatService, Depends(get_stats_service)],
     days: int = Query(30, description='Number of days back to retrieve data for'),
 ):

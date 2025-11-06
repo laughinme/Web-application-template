@@ -10,3 +10,14 @@ def permissions_cache_key(user_id: UUID | str, version: int) -> str:
 def roles_cache_key(user_id: UUID | str, version: int) -> str:
     return f"auth:roles:{user_id}:v{version}"
  
+ 
+GLOBAL_ROLE_IMPLICATIONS = {
+    "admin": {"member"},
+    "member": set(),
+}
+
+TEAM_ROLE_IMPLICATIONS = {
+    "owner": {"admin", "member"},
+    "admin": {"member"},
+    "member": set(),
+}
