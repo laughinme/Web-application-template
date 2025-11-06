@@ -1,13 +1,12 @@
-FROM node:20-alpine AS frontend-builder
+FROM node:25-alpine AS frontend-builder
 
 WORKDIR /app
 
 COPY frontend/package*.json ./
-RUN npm ci
+RUN npm ci --silent --no-audit --no-fund
 
 COPY frontend/ ./
 
-# Optional: allow overriding API base at build time
 ARG VITE_API_BASE_URL
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 
