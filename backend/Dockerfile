@@ -1,4 +1,7 @@
-FROM python:3.13.7-alpine
+FROM python:3.13.7-slim
+
+# NOTE: for alpine use this line
+# RUN apk add --no-cache bash
 
 WORKDIR /app
 
