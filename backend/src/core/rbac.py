@@ -9,4 +9,3 @@ def permissions_cache_key(user_id: UUID | str, version: int) -> str:
 
 def roles_cache_key(user_id: UUID | str, version: int) -> str:
     return f"auth:roles:{user_id}:v{version}"
- 

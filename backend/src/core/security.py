@@ -49,7 +49,7 @@ async def auth_user(
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Bad access token passed")
 
     user_id = payload["sub"]
-    user = await user_svc.get_user(user_id)
+    user = await user_svc.get_user(str(user_id))
     if user is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
     if user.banned:
