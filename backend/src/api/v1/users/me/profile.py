@@ -14,7 +14,10 @@ router = APIRouter()
     summary='Get user account info'
 )
 async def profile(
-    user: Annotated[User, Depends(auth_user)]
+    user: Annotated[User, Depends(auth_user)],
+    # TODO: Add expandable fields
+    # expand: Annotated[list[ExpandUserFields], Query(default_factory=list, description="Fields to expand with in the response")],
+    # svc: Annotated[UserService, Depends(get_user_service)],
 ):
     return user
 
