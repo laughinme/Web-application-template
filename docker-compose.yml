@@ -10,13 +10,15 @@ services:
       API_HOST: 0.0.0.0
       API_PORT: 8080
       SITE_URL: https://localhost
-      DATABASE_URL: postgresql+asyncpg://postgres:secret@db:5432/hackathon
+      DATABASE_URL: postgresql+asyncpg://postgres:secret@db:5432/templatepg
       REDIS_URL: redis://redis:6379/0
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
+    ports:
+      - "8080:8080"
     restart: unless-stopped
 
   nginx:
@@ -41,7 +43,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: secret
-      POSTGRES_DB: hackathon
+      POSTGRES_DB: templatepg
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:

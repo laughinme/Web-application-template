@@ -61,19 +61,19 @@ class CredentialsService:
             username=payload.username,
         )
         
-        await self.user_repo.add(user)
-
+        try:
+            await self.user_repo.add(user)
+            await self.uow.session.flush()
+        except IntegrityError as e:
+            raise AlreadyExists()
+        
+        
         default_role = await self.role_repo.get_by_slug(DEFAULT_ROLE.value)
         if default_role is None:
             raise RuntimeError("Default role is missing from the database")
 
         await self.user_repo.assign_roles(user, [default_role])
         
-        try:
-            await self.uow.session.flush()
-        except IntegrityError as e:
-            raise AlreadyExists()
-
         access, refresh, csrf = await self.token_service.issue_tokens(user, src)
         return access, refresh, csrf
     
