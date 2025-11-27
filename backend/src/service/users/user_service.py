@@ -1,13 +1,13 @@
 import aiofiles
 import shutil
-from datetime import date, datetime
+from datetime import datetime
 
 from uuid import UUID, uuid4
 from pathlib import Path
 from fastapi import UploadFile, status, HTTPException
 
 from core.config import Settings
-from core.rbac import permissions_cache_key
+# from core.rbac import permissions_cache_key
 from database.redis import CacheRepo
 from domain.users import UserPatch
 from database.relational_db import (
@@ -137,7 +137,7 @@ class UserService:
         target.bump_auth_version()
         await self.uow.commit()
         await self.uow.session.refresh(target)
-        await self._invalidate_permissions_cache(target.id, previous_version)
+        # await self._invalidate_permissions_cache(target.id, previous_version)
         return target
 
     async def list_languages(self, search: str, limit: int):
@@ -165,15 +165,15 @@ class UserService:
         await self.uow.commit()
         await self.uow.session.refresh(target)
 
-        await self._invalidate_permissions_cache(target.id, previous_version)
+        # await self._invalidate_permissions_cache(target.id, previous_version)
         return target
 
-    async def _invalidate_permissions_cache(
-        self,
-        user_id: UUID | str,
-        previous_version: int | None,
-    ) -> None:
-        if not self.cache_repo or previous_version is None:
-            return
-        cache_key = permissions_cache_key(user_id, previous_version)
-        await self.cache_repo.delete(cache_key)
+    # async def _invalidate_permissions_cache(
+    #     self,
+    #     user_id: UUID | str,
+    #     previous_version: int | None,
+    # ) -> None:
+    #     if not self.cache_repo or previous_version is None:
+    #         return
+    #     cache_key = permissions_cache_key(user_id, previous_version)
+    #     await self.cache_repo.delete(cache_key)

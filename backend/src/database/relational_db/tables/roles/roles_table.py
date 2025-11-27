@@ -21,12 +21,12 @@ class Role(TimestampMixin, Base):
     name: Mapped[str] = mapped_column(String(128), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    permissions: Mapped[list["Permission"]] = relationship(
-        "Permission",
-        secondary="role_permissions",
-        back_populates="roles",
-        lazy="selectin",
-    )
+    # permissions: Mapped[list["Permission"]] = relationship(
+    #     "Permission",
+    #     secondary="role_permissions",
+    #     back_populates="roles",
+    #     lazy="selectin",
+    # )
     users: Mapped[list["User"]] = relationship(  # pyright: ignore[reportUndefinedVariable]
         "User",
         secondary="user_roles",
@@ -35,19 +35,19 @@ class Role(TimestampMixin, Base):
     )
 
 
-class Permission(TimestampMixin, Base):
-    __tablename__ = "permissions"
+# class Permission(TimestampMixin, Base):
+#     __tablename__ = "permissions"
 
-    id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True), default=uuid4, primary_key=True
-    )
-    slug: Mapped[str] = mapped_column(String(128), nullable=False, unique=True)
-    name: Mapped[str] = mapped_column(String(128), nullable=False)
-    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+#     id: Mapped[UUID] = mapped_column(
+#         Uuid(as_uuid=True), default=uuid4, primary_key=True
+#     )
+#     slug: Mapped[str] = mapped_column(String(128), nullable=False, unique=True)
+#     name: Mapped[str] = mapped_column(String(128), nullable=False)
+#     description: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    roles: Mapped[list[Role]] = relationship(
-        "Role",
-        secondary="role_permissions",
-        back_populates="permissions",
-        lazy="selectin",
-    )
+#     roles: Mapped[list[Role]] = relationship(
+#         "Role",
+#         secondary="role_permissions",
+#         back_populates="permissions",
+#         lazy="selectin",
+#     )

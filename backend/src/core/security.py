@@ -16,7 +16,7 @@ from database.relational_db import User
 from domain.auth import SystemPermission, SystemRole
 from service.auth import TokenService, get_token_service
 from service.users import UserService, get_user_service
-from service.organizations import OrganizationService, get_organization_service
+# from service.organizations import OrganizationService, get_organization_service
 
 security = HTTPBearer(
     description="Access token must be passed as Bearer to authorize request"
@@ -119,7 +119,7 @@ def require(
         request: Request,
         payload: Annotated[dict[str, int | str], Depends(parse_token)],
         user: Annotated[User, Depends(auth_user)],
-        org_svc: Annotated[OrganizationService, Depends(get_organization_service)],
+        # org_svc: Annotated[OrganizationService, Depends(get_organization_service)],
     ) -> None:
         
         verify_auth_version(payload.get("av"), user)
@@ -135,21 +135,21 @@ def require(
                 raise HTTPException(status.HTTP_403_FORBIDDEN, detail="You don't have permission to do this")
             return
         
-        elif scope == "org":
-            org_id = request.path_params.get(org_kw) or request.query_params.get(org_kw)
-            if org_id is None:
-                raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Organization ID is required")
+        # elif scope == "org":
+        #     org_id = request.path_params.get(org_kw) or request.query_params.get(org_kw)
+        #     if org_id is None:
+        #         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Organization ID is required")
             
-            user_org_role = await org_svc.get_membership_role(org_id, user.id)
-            if user_org_role is None:
-                raise HTTPException(status.HTTP_403_FORBIDDEN, detail="You don't have permission to do this")
+        #     user_org_role = await org_svc.get_membership_role(org_id, user.id)
+        #     if user_org_role is None:
+        #         raise HTTPException(status.HTTP_403_FORBIDDEN, detail="You don't have permission to do this")
             
-            org_roles = expand_roles([user_org_role.value], TEAM_ROLE_IMPLICATIONS)
-            if org_roles & bypass_team:
-                return
+        #     org_roles = expand_roles([user_org_role.value], TEAM_ROLE_IMPLICATIONS)
+        #     if org_roles & bypass_team:
+        #         return
             
-            if not expected.issubset(org_roles):
-                raise HTTPException(status.HTTP_403_FORBIDDEN, detail="You don't have permission to do this")
+        #     if not expected.issubset(org_roles):
+        #         raise HTTPException(status.HTTP_403_FORBIDDEN, detail="You don't have permission to do this")
 
     return dependency
 

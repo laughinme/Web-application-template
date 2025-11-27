@@ -21,9 +21,6 @@ class UserInterface:
         stmt = (
             select(User)
             .where(User.id == id)
-            .options(
-                selectinload(User.roles).selectinload(Role.permissions)
-            )
         )
         user = await self.session.scalar(stmt)
         
@@ -46,7 +43,7 @@ class UserInterface:
         cursor_id: UUID | None = None,
     ) -> list[User]:
         stmt = select(User).options(
-            selectinload(User.roles).selectinload(Role.permissions)
+            selectinload(User.roles)
         )
 
         if banned is not None:

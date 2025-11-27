@@ -1,8 +1,8 @@
-"""create users table
+"""create users tables
 
-Revision ID: fa110bc90883
+Revision ID: 4199fbff849e
 Revises: 
-Create Date: 2025-08-18 18:22:58.100224
+Create Date: 2025-11-07 03:11:11.699600
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'fa110bc90883'
+revision: str = '4199fbff849e'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -31,6 +31,7 @@ def upgrade() -> None:
     )
     op.create_index('languages_name_en_trgm', 'languages', ['name_en'], unique=False, postgresql_using='gin', postgresql_ops={'name_en': 'gin_trgm_ops'})
     op.create_index('languages_name_ru_trgm', 'languages', ['name_ru'], unique=False, postgresql_using='gin', postgresql_ops={'name_ru': 'gin_trgm_ops'})
+
     op.create_table('users',
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('email', sa.String(), nullable=False),
@@ -41,9 +42,9 @@ def upgrade() -> None:
     sa.Column('bio', sa.String(), nullable=True),
     sa.Column('birth_date', sa.Date(), nullable=True),
     sa.Column('language_code', sa.String(length=2), nullable=True),
-    sa.Column('is_admin', sa.Boolean(), server_default=sa.text('false'), nullable=False),
     sa.Column('is_onboarded', sa.Boolean(), nullable=False),
     sa.Column('banned', sa.Boolean(), nullable=False),
+    sa.Column('auth_version', sa.Integer(), server_default='1', nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['language_code'], ['languages.code'], ),
@@ -61,6 +62,7 @@ def downgrade() -> None:
     op.drop_index('users_username_trgm', table_name='users', postgresql_using='gin', postgresql_ops={'username': 'gin_trgm_ops'})
     op.drop_index('users_email_trgm', table_name='users', postgresql_using='gin', postgresql_ops={'email': 'gin_trgm_ops'})
     op.drop_table('users')
+    
     op.drop_index('languages_name_ru_trgm', table_name='languages', postgresql_using='gin', postgresql_ops={'name_ru': 'gin_trgm_ops'})
     op.drop_index('languages_name_en_trgm', table_name='languages', postgresql_using='gin', postgresql_ops={'name_en': 'gin_trgm_ops'})
     op.drop_table('languages')
