@@ -1,4 +1,30 @@
-const CSRF_COOKIE_NAME = "csrf_token";
+export const CSRF_COOKIE_NAME = "csrf_token";
+
+const readCookieValue = (name: string): string | null => {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  const tokenCookie = document.cookie
+    .split(";")
+    .map((cookie) => cookie.trim())
+    .find((cookie) => cookie.startsWith(`${name}=`));
+
+  if (!tokenCookie) {
+    return null;
+  }
+
+  const [, rawValue] = tokenCookie.split("=");
+  if (!rawValue) {
+    return null;
+  }
+
+  try {
+    return decodeURIComponent(rawValue);
+  } catch {
+    return null;
+  }
+};
 
 export interface ResolveCsrfOptions {
   retries?: number;
@@ -24,28 +50,7 @@ const sleep = (ms: number): Promise<void> =>
   });
 
 export const readCsrfToken = (): string | null => {
-  if (typeof document === "undefined") {
-    return null;
-  }
-  const tokenCookie = document.cookie
-    .split(";")
-    .map((cookie) => cookie.trim())
-    .find((cookie) => cookie.startsWith(`${CSRF_COOKIE_NAME}=`));
-
-  if (!tokenCookie) {
-    return null;
-  }
-
-  const [, rawValue] = tokenCookie.split("=");
-  if (!rawValue) {
-    return null;
-  }
-
-  try {
-    return decodeURIComponent(rawValue);
-  } catch {
-    return null;
-  }
+  return readCookieValue(CSRF_COOKIE_NAME);
 };
 
 export const resolveCsrfToken = async (
