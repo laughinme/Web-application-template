@@ -123,7 +123,7 @@ apiProtected.interceptors.response.use(
         }
 
         const { data } = await apiPublic.post<AuthTokens>(
-          "/auth/refresh/",
+          "/auth/refresh",
           {},
           {
             headers: { "X-CSRF-Token": csrfToken },

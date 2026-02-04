@@ -9,7 +9,7 @@ router = APIRouter()
 
 
 @router.post(
-    path='/register/',
+    path='/register',
     response_model=TokenPair,
     status_code=201,
     responses={

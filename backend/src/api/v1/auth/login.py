@@ -16,7 +16,7 @@ security = HTTPBearer(
 
 
 @router.post(
-    path="/login/",
+    path="/login",
     response_model=TokenPair,
     summary="Authenticate user and issue tokens",
     responses={        
@@ -46,7 +46,7 @@ async def login_user(
 
 
 @router.post(
-    path="/logout/",
+    path="/logout",
     responses={401: {"description": "Not authorized"}}
 )
 async def logout(

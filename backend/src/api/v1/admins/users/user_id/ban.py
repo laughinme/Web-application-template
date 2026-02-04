@@ -11,7 +11,7 @@ router = APIRouter()
 
 
 @router.post(
-    path='/ban/',
+    path='/ban',
     response_model=UserModel,
     summary='Ban or unban a user',
 )

@@ -13,7 +13,7 @@ config = Settings() # pyright: ignore[reportCallIssue]
 
 
 # @router.get(    
-#     path='/active-users/',
+#     path='/active-users',
 #     response_model=list[ActiveUsersGraph],
 #     summary='Get graph data for active users by days',
 # )
@@ -25,7 +25,7 @@ config = Settings() # pyright: ignore[reportCallIssue]
 #     return await svc.active_users(days)
 
 @router.get(    
-    path='/registrations/',
+    path='/registrations',
     response_model=list[RegistrationsGraph],
     summary='Get graph data for new registrations by days',
 )

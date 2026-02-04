@@ -13,7 +13,7 @@ router = APIRouter()
 
 
 @router.put(
-    path="/roles/",
+    path="/roles",
     response_model=UserModel,
     summary="Assign roles to user",
 )

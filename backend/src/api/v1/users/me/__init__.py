@@ -5,7 +5,7 @@ def get_me_router() -> APIRouter:
     from .profile import router as profile_router
     from .picture import router as picture_router
     
-    router = APIRouter(prefix='/me')
+    router = APIRouter()
     
     router.include_router(profile_router)
     router.include_router(picture_router)

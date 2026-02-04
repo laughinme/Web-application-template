@@ -16,7 +16,7 @@ security = HTTPBearer(
 
 
 @router.post(
-    path='/refresh/',
+    path='/refresh',
     response_model=TokenPair,
     summary='Rotate tokens',
     dependencies=[Depends(RateLimiter(times=10, seconds=60, identifier=extract_jti))],
