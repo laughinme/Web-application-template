@@ -7,9 +7,12 @@ services:
     env_file:
       - ./backend/.env
     environment:
+      APP_STAGE: dev
       API_HOST: 0.0.0.0
       API_PORT: 8080
-      SITE_URL: https://localhost
+      SITE_URL: http://localhost
+      COOKIE_SECURE: "false"
+      COOKIE_SAMESITE: "lax"
       DATABASE_URL: postgresql+asyncpg://postgres:secret@db:5432/templatepg
       REDIS_URL: redis://redis:6379/0
     depends_on:
@@ -17,6 +20,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    volumes:
+      - ./backend/secrets:/app/secrets:ro
     ports:
       - "8080:8080"
     restart: unless-stopped
@@ -25,13 +30,9 @@ services:
     build:
       context: .
       dockerfile: nginx/Dockerfile
-      args:
-        VITE_API_BASE_URL: https://localhost
-        VITE_ENABLE_HTTPS: "false"
     container_name: nginx
     ports:
       - "80:80"
-      - "443:443"
     depends_on:
       backend:
         condition: service_started
@@ -44,6 +45,8 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: secret
       POSTGRES_DB: templatepg
+    ports:
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -56,6 +59,8 @@ services:
   redis:
     image: redis:8-alpine
     container_name: redis_service
+    ports:
+      - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:

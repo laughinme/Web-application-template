@@ -27,7 +27,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     lifespan=lifespan,
     title='Hackathon',
-    debug=True
+    debug=config.DEBUG if config.DEBUG is not None else config.APP_STAGE == "dev"
 )
 
 # Mount static
@@ -44,18 +44,22 @@ async def ping():
 
 
 # Adding middlewares
-allowed_origins = [
-    "http://localhost:5173",
-    "https://localhost:5173",
-]
 
-if config.SITE_URL:
-    allowed_origins.append(config.SITE_URL)
+# Optional CORS; enable only when calling API directly, without proxy
+# def _parse_csv(value: str) -> list[str]:
+#     if not value:
+#         return []
+#     return [item.strip() for item in value.split(",") if item.strip()]
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allow_headers=['X-CSRF-Token', 'X-Requested-With', 'Accept', 'Content-Type', 'Authorization', 'X-Client'],
-    allow_credentials=True,
-)
+# allowed_origins = _parse_csv(config.CORS_ALLOW_ORIGINS)
+# allow_origin_regex = config.CORS_ALLOW_ORIGIN_REGEX or None
+
+# if allowed_origins or allow_origin_regex:
+#     app.add_middleware(
+#         CORSMiddleware,
+#         allow_origins=allowed_origins,
+#         allow_origin_regex=allow_origin_regex,
+#         allow_methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+#         allow_headers=['X-CSRF-Token', 'X-Requested-With', 'Accept', 'Content-Type', 'Authorization', 'X-Client'],
+#         allow_credentials=True,
+#     )

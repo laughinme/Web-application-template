@@ -1,0 +1,13 @@
+{
+    "rewrites": [
+      {
+        "source": "/api/v1/:path*",
+        "destination": "https://template-backend.fly.dev/api/v1/:path*"
+      },
+      {
+        "source": "/:path*",
+        "destination": "/index.html"
+      }
+    ]
+  }
+  
