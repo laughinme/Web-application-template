@@ -60,9 +60,7 @@ export default function AuthPage(): ReactElement {
     isLoggingIn,
     loginError,
     isRegistering,
-    registerError,
-    csrfWarning,
-    dismissCsrfWarning
+    registerError
   } = auth;
 
   const isLoading = isLoggingIn || isRegistering;
@@ -72,7 +70,6 @@ export default function AuthPage(): ReactElement {
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    dismissCsrfWarning();
     if (!canSubmit) {
       return;
     }
@@ -112,20 +109,6 @@ export default function AuthPage(): ReactElement {
         animate={isVisible ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 32, scale: 0.96 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
       >
-        {csrfWarning ? (
-          <div className="mb-6 rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-sm text-amber-100 backdrop-blur">
-            <div className="flex items-start justify-between gap-3">
-              <span>{csrfWarning}</span>
-              <button
-                type="button"
-                onClick={dismissCsrfWarning}
-                className="text-amber-200 underline-offset-4 hover:underline"
-              >
-                Понятно
-              </button>
-            </div>
-          </div>
-        ) : null}
         <AnimatePresence mode="wait">
           {mode === "login" ? (
             <motion.div
