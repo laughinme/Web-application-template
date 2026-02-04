@@ -190,3 +190,4 @@ test.py
 # Allow tracked frontend shared utilities
 !frontend/src/shared/lib/
 !frontend/src/shared/lib/**
+.vercel
