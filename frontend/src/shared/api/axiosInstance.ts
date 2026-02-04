@@ -77,6 +77,13 @@ const apiProtected: AxiosInstance = axios.create({
   withCredentials: true
 });
 
+const normalizePath = (value?: string): string | undefined => {
+  if (!value) {
+    return value;
+  }
+  return value.replace(/\/+$/, "");
+};
+
 apiProtected.interceptors.request.use(
   (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
     const token = getAccessToken();
@@ -95,10 +102,11 @@ apiProtected.interceptors.response.use(
   async (error: AxiosError): Promise<AxiosResponse | never> => {
     const originalRequest = (error.config as (InternalAxiosRequestConfig & { _retry?: boolean })) ?? null;
 
+    const originalUrl = normalizePath(originalRequest?.url);
     if (
       error?.response?.status === 401 &&
       originalRequest &&
-      originalRequest.url !== "/auth/refresh" &&
+      originalUrl !== "/auth/refresh" &&
       !originalRequest._retry
     ) {
       originalRequest._retry = true;
@@ -115,7 +123,7 @@ apiProtected.interceptors.response.use(
         }
 
         const { data } = await apiPublic.post<AuthTokens>(
-          "/auth/refresh",
+          "/auth/refresh/",
           {},
           {
             headers: { "X-CSRF-Token": csrfToken },

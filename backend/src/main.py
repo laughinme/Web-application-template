@@ -26,7 +26,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     lifespan=lifespan,
-    title='Hackathon',
+    title='Backend Template',
     debug=config.DEBUG if config.DEBUG is not None else config.APP_STAGE == "dev"
 )
 

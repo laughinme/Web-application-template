@@ -182,7 +182,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
 
         const { data } = await apiPublic.post<AuthTokens>(
-          "/auth/refresh",
+          "/auth/refresh/",
           {},
           {
             headers: { "X-CSRF-Token": csrfToken },
@@ -195,7 +195,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           setSkipSessionRestore(false);
         }
       } catch (err) {
-        console.error("[Auth] Ошибка при запросе на /auth/refresh:", err);
+        console.error("[Auth] Ошибка при запросе на /auth/refresh/:", err);
       } finally {
         setIsRestoringSession(false);
       }

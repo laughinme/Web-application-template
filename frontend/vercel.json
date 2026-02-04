@@ -9,7 +9,7 @@
         "destination": "/index.html"
       }
     ],
-    "trailingSlash": false
+    "trailingSlash": true
 
   }
   
