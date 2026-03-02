@@ -1,4 +1,4 @@
-import { type ComponentProps, type FormEvent } from "react"
+import { type ComponentProps, type SubmitEvent } from "react"
 
 import { Button } from "@/shared/ui/button"
 import {
@@ -23,7 +23,7 @@ type SignupFormProps = Omit<ComponentProps<"div">, "onSubmit"> & {
   password: string
   onEmailChange: (value: string) => void
   onPasswordChange: (value: string) => void
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void | Promise<void>
+  onSubmit: (event: SubmitEvent<HTMLFormElement>) => void | Promise<void>
   submitLabel: string
   disabled?: boolean
   submitDisabled?: boolean

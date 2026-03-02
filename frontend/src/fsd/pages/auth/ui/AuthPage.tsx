@@ -1,6 +1,6 @@
-import { useEffect, useState, type FormEvent, type ReactElement } from "react";
+import { useEffect, useState, type ReactElement, type SubmitEvent } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { useAuth } from "@/app/providers/auth/useAuth";
+import { useAuth } from "@/app/providers/auth/AuthContext";
 import type { AuthCredentials } from "@/entities/auth/model";
 import { LoginForm } from "@/features/auth/login-form";
 import { SignupForm } from "@/features/auth/signup-form";
@@ -68,7 +68,7 @@ export default function AuthPage(): ReactElement {
   const errorMessage = error ? getErrorMessage(error) : null;
   const canSubmit = Boolean(email.trim() && password.trim() && !isLoading);
 
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!canSubmit) {
       return;

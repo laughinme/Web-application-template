@@ -13,7 +13,7 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@/shared/components/ui/avatar"
-import { useAuth } from "@/app/providers/auth/useAuth"
+import { useAuth } from "@/app/providers/auth/AuthContext"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,10 +42,8 @@ export function NavUser({
   const auth = useAuth()
   const { isMobile } = useSidebar()
   const displayEmail = auth?.user?.email ?? user.email
-  const authUserName =
-    auth?.user && typeof (auth.user as { name?: unknown }).name === "string"
-      ? (auth.user as { name: string }).name
-      : undefined
+  const authUserNameCandidate = auth?.user?.["name"]
+  const authUserName = typeof authUserNameCandidate === "string" ? authUserNameCandidate : undefined
   const displayName = authUserName ?? displayEmail ?? user.name
 
   const handleLogout = useCallback(() => {

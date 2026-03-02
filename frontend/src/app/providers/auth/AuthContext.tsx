@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as api from "@/shared/api";
 import {
@@ -8,7 +8,6 @@ import {
   setCsrfMissingHandler as setAxiosCsrfMissingHandler
 } from "@/shared/api/axiosInstance";
 import { resolveCsrfToken } from "@/shared/lib/csrf";
-import { AuthContext } from "./AuthContextObject";
 import type { AuthContextValue, AuthCredentials, AuthTokens, AuthUser } from "@/entities/auth/model";
 
 const SKIP_SESSION_RESTORE_STORAGE_KEY = "auth:skip-session-restore";
@@ -43,6 +42,10 @@ const writeSkipSessionRestoreFlag = (value: boolean): void => {
 interface AuthProviderProps {
   children: ReactNode;
 }
+
+export const AuthContext = createContext<AuthContextValue | null>(null);
+
+export const useAuth = (): AuthContextValue | null => useContext(AuthContext);
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const queryClient = useQueryClient();
