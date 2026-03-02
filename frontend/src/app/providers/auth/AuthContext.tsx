@@ -20,7 +20,7 @@ const readSkipSessionRestoreFlag = (): boolean => {
   try {
     return window.sessionStorage.getItem(SKIP_SESSION_RESTORE_STORAGE_KEY) === "1";
   } catch (error) {
-    console.warn("[Auth] Не удалось прочитать флаг пропуска восстановления сессии.", error);
+    console.warn("Не удалось прочитать флаг пропуска восстановления сессии.", error);
     return false;
   }
 };
@@ -36,7 +36,7 @@ const writeSkipSessionRestoreFlag = (value: boolean): void => {
       window.sessionStorage.removeItem(SKIP_SESSION_RESTORE_STORAGE_KEY);
     }
   } catch (error) {
-    console.warn("[Auth] Не удалось записать флаг пропуска восстановления сессии.", error);
+    console.warn("Не удалось записать флаг пропуска восстановления сессии.", error);
   }
 };
 
@@ -63,7 +63,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, []);
 
   const reportCsrfMissing = useCallback((): void => {
-    setCsrfWarning("Не удалось получить CSRF-токен. Пожалуйста, выполните вход заново.");
   }, []);
 
   const setSkipSessionRestore = useCallback((value: boolean): void => {
@@ -166,7 +165,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     hasAttemptedSessionRestore.current = true;
 
     if (skipSessionRestoreRef.current) {
-      console.log("[Auth] Пропускаем восстановление сессии после явного выхода.");
       setIsRestoringSession(false);
       return;
     }
@@ -176,7 +174,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         const csrfToken = await resolveCsrfToken();
 
         if (!csrfToken) {
-          console.log("[Auth] CSRF-токен не найден, прекращаем попытку восстановления.");
           reportCsrfMissing();
           return;
         }
@@ -195,7 +192,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           setSkipSessionRestore(false);
         }
       } catch (err) {
-        console.error("[Auth] Ошибка при запросе на /auth/refresh:", err);
       } finally {
         setIsRestoringSession(false);
       }
