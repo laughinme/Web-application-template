@@ -20,7 +20,7 @@ const readSkipSessionRestoreFlag = (): boolean => {
   try {
     return window.sessionStorage.getItem(SKIP_SESSION_RESTORE_STORAGE_KEY) === "1";
   } catch (error) {
-    console.warn("Не удалось прочитать флаг пропуска восстановления сессии.", error);
+    console.warn(error);
     return false;
   }
 };
@@ -36,7 +36,7 @@ const writeSkipSessionRestoreFlag = (value: boolean): void => {
       window.sessionStorage.removeItem(SKIP_SESSION_RESTORE_STORAGE_KEY);
     }
   } catch (error) {
-    console.warn("Не удалось записать флаг пропуска восстановления сессии.", error);
+    console.warn(error);
   }
 };
 
@@ -153,7 +153,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   useEffect(() => {
     if (isError) {
-      console.error("Ошибка useQuery('me'): Не удалось загрузить профиль. Выход из системы.", userError);
+      console.error("Не удалось загрузить профиль. Выход из системы.", userError);
       clearSession();
     }
   }, [isError, userError, clearSession]);

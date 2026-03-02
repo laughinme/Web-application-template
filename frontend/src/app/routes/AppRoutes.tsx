@@ -8,7 +8,7 @@ const RequireAuth = () => {
   const location = useLocation();
 
   if (!auth) {
-    throw new Error("Auth context is unavailable. Wrap routes with <AuthProvider>.");
+    throw new Error("Auth context is unavailable.");
   }
 
   if (!auth.user) {
@@ -23,7 +23,7 @@ const RedirectIfAuthenticated = () => {
   const location = useLocation();
 
   if (!auth) {
-    throw new Error("Auth context is unavailable. Wrap routes with <AuthProvider>.");
+    throw new Error("Auth context is unavailable.");
   }
 
   if (auth.user) {
