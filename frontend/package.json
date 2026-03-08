@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
+    "@stoplight/prism-cli": "^5.14.2",
     "@types/node": "^22.18.8",
     "@types/react": "^19.2.10",
     "@types/react-dom": "^19.1.7",
