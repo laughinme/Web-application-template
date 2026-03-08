@@ -1,5 +1,5 @@
 import { Navigate, Outlet, useLocation, useRoutes, type Location, type RouteObject } from "react-router-dom";
-import DashboardPage from "@/pages/Dashboard";
+import HomePage from "@/pages/Home";
 import AuthPage from "@/pages/auth/ui/AuthPage";
 import { useAuth } from "@/app/providers/auth/useAuth";
 
@@ -30,7 +30,7 @@ const RedirectIfAuthenticated = () => {
     const state = location.state as { from?: Location } | undefined;
     const from = state?.from;
     const targetPath =
-      from && from.pathname && from.pathname !== "/auth" ? from.pathname : "/dashboard";
+      from && from.pathname && from.pathname !== "/auth" ? from.pathname : "/";
 
     return <Navigate to={targetPath} replace />;
   }
@@ -43,8 +43,7 @@ export const routes: RouteObject[] = [
     path: "/",
     element: <RequireAuth />,
     children: [
-      { index: true, element: <Navigate to="/dashboard" replace /> },
-      { path: "dashboard", element: <DashboardPage /> }
+      { index: true, element: <HomePage /> }
     ]
   },
   {
@@ -53,7 +52,7 @@ export const routes: RouteObject[] = [
   },
   {
     path: "*",
-    element: <Navigate to="/dashboard" replace />
+    element: <Navigate to="/" replace />
   }
 ];
 
