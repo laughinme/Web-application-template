@@ -25,7 +25,7 @@ export const apiPublic: AxiosInstance = axios.create({
 
 let accessToken: string | null = null;
 let unauthorizedHandler: (() => void) | null = null;
-let csrfMissingHandler: (() => void) | null = null;
+let refreshPromise: Promise<string | null> | null = null;
 
 export const setAccessToken = (token: string | null): void => {
   accessToken = token;
@@ -37,10 +37,6 @@ export const setUnauthorizedHandler = (handler: (() => void) | null): void => {
   unauthorizedHandler = typeof handler === "function" ? handler : null;
 };
 
-export const setCsrfMissingHandler = (handler: (() => void) | null): void => {
-  csrfMissingHandler = typeof handler === "function" ? handler : null;
-};
-
 const notifyUnauthorized = (): void => {
   setAccessToken(null);
   if (unauthorizedHandler) {
@@ -48,16 +44,6 @@ const notifyUnauthorized = (): void => {
       unauthorizedHandler();
     } catch (handlerError) {
       console.error("[Interceptor] Ошибка обработчика выхода из системы.", handlerError);
-    }
-  }
-};
-
-const notifyCsrfMissing = (): void => {
-  if (csrfMissingHandler) {
-    try {
-      csrfMissingHandler();
-    } catch (handlerError) {
-      console.error("[Interceptor] Ошибка обработчика отсутствующего CSRF-токена.", handlerError);
     }
   }
 };
@@ -82,6 +68,34 @@ const normalizePath = (value?: string): string | undefined => {
     return value;
   }
   return value.replace(/\/+$/, "");
+};
+
+const refreshAccessToken = async (): Promise<string | null> => {
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      const csrfToken = await resolveCsrfToken();
+
+      if (!csrfToken) {
+        console.error("[Interceptor] Не найден CSRF-токен для обновления. Выход из системы.");
+        return null;
+      }
+
+      const { data } = await apiPublic.post<AuthTokens>(
+        "/auth/refresh",
+        {},
+        {
+          headers: { "X-CSRF-Token": csrfToken },
+          withCredentials: true
+        }
+      );
+
+      return data?.access_token ?? null;
+    })().finally(() => {
+      refreshPromise = null;
+    });
+  }
+
+  return refreshPromise;
 };
 
 apiProtected.interceptors.request.use(
@@ -112,26 +126,7 @@ apiProtected.interceptors.response.use(
       originalRequest._retry = true;
       try {
         console.log("[Interceptor] Перехвачена ошибка 401. Пытаемся обновить токен...");
-
-        const csrfToken = await resolveCsrfToken();
-
-        if (!csrfToken) {
-          console.error("[Interceptor] Не найден CSRF-токен для обновления. Выход из системы.");
-          notifyCsrfMissing();
-          notifyUnauthorized();
-          return Promise.reject(error);
-        }
-
-        const { data } = await apiPublic.post<AuthTokens>(
-          "/auth/refresh",
-          {},
-          {
-            headers: { "X-CSRF-Token": csrfToken },
-            withCredentials: true
-          }
-        );
-
-        const newAccessToken = data?.access_token;
+        const newAccessToken = await refreshAccessToken();
         if (newAccessToken) {
           console.log("[Interceptor] Токен успешно обновлен. Повторяем исходный запрос.");
           setAccessToken(newAccessToken);

@@ -4,8 +4,7 @@ import * as api from "@/shared/api";
 import {
   apiPublic,
   setAccessToken as setAxiosAccessToken,
-  setUnauthorizedHandler as setAxiosUnauthorizedHandler,
-  setCsrfMissingHandler as setAxiosCsrfMissingHandler
+  setUnauthorizedHandler as setAxiosUnauthorizedHandler
 } from "@/shared/api/axiosInstance";
 import { resolveCsrfToken } from "@/shared/lib/csrf";
 import { AuthContext } from "./AuthContextObject";
@@ -48,7 +47,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const queryClient = useQueryClient();
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isRestoringSession, setIsRestoringSession] = useState<boolean>(true);
-  const [csrfWarning, setCsrfWarning] = useState<string | null>(null);
   const hasAttemptedSessionRestore = useRef<boolean>(false);
   const skipSessionRestoreRef = useRef<boolean>(readSkipSessionRestoreFlag());
 
@@ -57,14 +55,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setAxiosAccessToken(null);
     queryClient.removeQueries({ queryKey: ["me"] });
   }, [queryClient]);
-
-  const dismissCsrfWarning = useCallback((): void => {
-    setCsrfWarning(null);
-  }, []);
-
-  const reportCsrfMissing = useCallback((): void => {
-    setCsrfWarning("Не удалось получить CSRF-токен. Пожалуйста, выполните вход заново.");
-  }, []);
 
   const setSkipSessionRestore = useCallback((value: boolean): void => {
     skipSessionRestoreRef.current = value;
@@ -81,13 +71,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, [clearSession]);
 
   useEffect(() => {
-    setAxiosCsrfMissingHandler(reportCsrfMissing);
-    return () => setAxiosCsrfMissingHandler(null);
-  }, [reportCsrfMissing]);
-
-  useEffect(() => {
     if (accessToken) {
-      setCsrfWarning(null);
       if (skipSessionRestoreRef.current) {
         setSkipSessionRestore(false);
       }
@@ -177,7 +161,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
         if (!csrfToken) {
           console.log("[Auth] CSRF-токен не найден, прекращаем попытку восстановления.");
-          reportCsrfMissing();
           return;
         }
 
@@ -212,9 +195,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     isLoggingIn: loginMutation.isPending,
     loginError: loginMutation.error,
     isRegistering: registerMutation.isPending,
-    registerError: registerMutation.error,
-    csrfWarning,
-    dismissCsrfWarning
+    registerError: registerMutation.error
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

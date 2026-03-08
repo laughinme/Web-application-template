@@ -11,7 +11,6 @@ export default function HomePage() {
       return
     }
 
-    auth.dismissCsrfWarning()
     auth.logout()
   }, [auth])
 
