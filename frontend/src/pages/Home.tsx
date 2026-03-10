@@ -2,6 +2,7 @@ import { useCallback } from "react"
 
 import { useAuth } from "@/app/providers/auth/useAuth"
 import { Button } from "@/shared/components/ui/button"
+import DashboardPage from "./Dashboard"
 
 export default function HomePage() {
   const auth = useAuth()
@@ -16,9 +17,10 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
-      <Button type="button" onClick={handleLogout}>
+      <DashboardPage/>
+      {/* <Button type="button" onClick={handleLogout}>
         Logout
-      </Button>
+      </Button> */}
     </div>
   )
 }
