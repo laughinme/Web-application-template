@@ -1,27 +1,36 @@
+import logging
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from datetime import datetime, timedelta
+
+from core.config import Settings, get_settings
+
+logger = logging.getLogger(__name__)
 
 
-def example_scheduler():
-    pass
+def init_scheduler(settings: Settings | None = None) -> AsyncIOScheduler | None:
+    settings = settings or get_settings()
+    if not settings.SCHEDULER_ENABLED:
+        logger.info("Scheduler is disabled")
+        return None
 
-def init_scheduler():
-    """
-    Add all jobs to scheduler
-    """
-    scheduler = AsyncIOScheduler()
-    
-    scheduler.add_job(
-        func=example_scheduler,
-        trigger="cron",
-        minute="*/10",
-        id="example",
-        next_run_time=datetime.now() + timedelta(seconds=3),
-        max_instances=1,
-        coalesce=True,
-        misfire_grace_time=60,
+    scheduler = AsyncIOScheduler(
+        timezone="UTC",
+        job_defaults={
+            "coalesce": True,
+            "max_instances": 1,
+            "misfire_grace_time": 30,
+        },
     )
-    
-    # scheduler.start()
 
+    scheduler.start()
+    logger.info("Scheduler started")
     return scheduler
+
+
+def stop_scheduler(scheduler: AsyncIOScheduler | None) -> None:
+    if scheduler is None:
+        return
+
+    if scheduler.running:
+        scheduler.shutdown(wait=False)
+        logger.info("Scheduler stopped")

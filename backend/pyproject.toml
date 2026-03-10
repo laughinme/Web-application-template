@@ -10,6 +10,7 @@ dependencies = [
     "fastapi (>=0.135.1,<0.136.0)",
     "alembic (>=1.18.4,<2.0.0)",
     "sqlalchemy (>=2.0.48,<3.0.0)",
+    "greenlet (>=3.2.4,<4.0.0)",
     "fastapi-limiter (>=0.2.0,<0.3.0)",
     "pyrate-limiter (>=4.0.2,<5.0.0)",
     "redis (>=7.3.0,<8.0.0)",
@@ -31,3 +32,12 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 package-mode = false
+
+[dependency-groups]
+dev = [
+    "faker (>=37.11.0,<38.0.0)",
+    "httpx (>=0.28.1,<0.29.0)",
+    "pytest (>=8.3.5,<9.0.0)",
+    "pytest-asyncio (>=1.1.0,<2.0.0)",
+    "ruff (>=0.14.1,<0.15.0)"
+]

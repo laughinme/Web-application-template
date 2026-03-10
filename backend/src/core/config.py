@@ -1,4 +1,5 @@
 import logging
+from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
@@ -19,6 +20,9 @@ class Settings(BaseSettings):
     # Stage / debug
     APP_STAGE: Literal["dev", "prod"] = "dev"
     DEBUG: bool | None = None
+    LOG_LEVEL: str = "INFO"
+    SQL_ECHO: bool = False
+    SCHEDULER_ENABLED: bool = False
 
     # API settings
     API_PORT: int = 8080
@@ -62,6 +66,22 @@ class Settings(BaseSettings):
             return value
         return value.strip().lower()
 
+    @field_validator("DEBUG", mode="before")
+    @classmethod
+    def _normalize_debug(cls, value: bool | str | None) -> bool | None:
+        if value is None or isinstance(value, bool):
+            return value
+
+        normalized = str(value).strip().lower()
+        if normalized in {"1", "true", "yes", "on"}:
+            return True
+        if normalized in {"0", "false", "no", "off"}:
+            return False
+        if normalized in {"", "none", "null", "release"}:
+            return None
+
+        return value
+
     @field_validator("CSRF_HMAC_KEY", mode="before")
     @classmethod
     def _ensure_bytes(cls, value: str | bytes) -> bytes:
@@ -88,8 +108,20 @@ class Settings(BaseSettings):
         return self
 
 
-def configure_logging():
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()  # pyright: ignore[reportCallIssue]
+
+
+def clear_settings_cache() -> None:
+    get_settings.cache_clear()
+
+
+def configure_logging(settings: Settings | None = None) -> None:
+    settings = settings or get_settings()
+    log_level = getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO)
+
     logging.basicConfig(
-        level=logging.INFO,
+        level=log_level,
         format="%(asctime)s %(levelname)s [%(filename)s:%(lineno)d] %(message)s",
     )
