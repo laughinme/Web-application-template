@@ -1,5 +1,8 @@
 from fastapi import APIRouter, Depends
-from fastapi_limiter.depends import RateLimiter
+
+from core.rate_limit import AUTH_LIMITER_STATE_KEY, build_rate_dependency
+
+auth_rate_limit = build_rate_dependency(AUTH_LIMITER_STATE_KEY)
 
 
 def get_auth_routers() -> APIRouter:
@@ -15,7 +18,7 @@ def get_auth_routers() -> APIRouter:
             403: {"description": "Forbidden"},
             429: {"description": "Too Many Requests"}
         },
-        dependencies=[Depends(RateLimiter(times=10, seconds=60))]
+        dependencies=[Depends(auth_rate_limit)]
     )
     
     router.include_router(register_router)

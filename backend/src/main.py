@@ -1,12 +1,12 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi_limiter import FastAPILimiter
 from contextlib import asynccontextmanager
 from starlette.middleware.cors import CORSMiddleware
 
 from api import get_api_routers
 from webhooks import get_webhooks
 from core.config import Settings, configure_logging
+from core.rate_limit import init_rate_limiters
 from database.redis import get_redis
 # from scheduler import init_scheduler
 
@@ -18,7 +18,7 @@ configure_logging()
 async def lifespan(app: FastAPI):
     redis = get_redis()
     try:
-        await FastAPILimiter.init(redis)
+        await init_rate_limiters(app, redis)
         yield
     finally:
         await redis.aclose()

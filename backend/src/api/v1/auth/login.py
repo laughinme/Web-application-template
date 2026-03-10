@@ -1,8 +1,6 @@
 from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, Response, Request, Header, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi_limiter import FastAPILimiter
-from fastapi_limiter.depends import RateLimiter
 
 from core.http.cookies import clear_auth_cookies, set_auth_cookies
 from service.auth import CredentialsService, get_credentials_service

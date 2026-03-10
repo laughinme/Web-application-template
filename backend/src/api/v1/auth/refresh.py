@@ -1,8 +1,8 @@
 from typing import Annotated
 from fastapi import APIRouter, Depends, Header, Request, Response, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi_limiter.depends import RateLimiter
 
+from core.rate_limit import REFRESH_LIMITER_STATE_KEY, build_rate_dependency
 from service.auth import TokenService, get_token_service
 from domain.auth import TokenPair
 from core.http.cookies import clear_auth_cookies, set_auth_cookies
@@ -13,13 +13,17 @@ security = HTTPBearer(
     auto_error=False, 
     description='Send refresh token as Bearer for non-browser clients'
 )
+refresh_rate_limit = build_rate_dependency(
+    REFRESH_LIMITER_STATE_KEY,
+    identifier=extract_jti,
+)
 
 
 @router.post(
     path='/refresh',
     response_model=TokenPair,
     summary='Rotate tokens',
-    dependencies=[Depends(RateLimiter(times=10, seconds=60, identifier=extract_jti))],
+    dependencies=[Depends(refresh_rate_limit)],
 )
 async def refresh_tokens(
     request: Request,
