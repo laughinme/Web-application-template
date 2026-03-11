@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom"
 import {
   IconCreditCard,
   IconDotsVertical,
@@ -82,9 +83,11 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <IconUserCircle />
-                Account
+              <DropdownMenuItem asChild>
+                <Link to="/profile">
+                  <IconUserCircle />
+                  Account
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <IconCreditCard />
