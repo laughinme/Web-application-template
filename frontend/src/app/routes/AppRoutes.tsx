@@ -1,7 +1,10 @@
 import { Navigate, Outlet, useLocation, useRoutes, type Location, type RouteObject } from "react-router-dom";
 import HomePage from "@/pages/Home";
+import ProfilePage from "@/pages/Profile/ui/ProfilePage";
 import AuthPage from "@/pages/auth/ui/AuthPage";
 import { useAuth } from "@/app/providers/auth/useAuth";
+
+import DashboardPage from "@/pages/Dashboard";
 
 const RequireAuth = () => {
   const auth = useAuth();
@@ -43,7 +46,9 @@ export const routes: RouteObject[] = [
     path: "/",
     element: <RequireAuth />,
     children: [
-      { index: true, element: <HomePage /> }
+      { index: true, element: <HomePage /> },
+      { path: "profile", element: <ProfilePage /> },
+      { path: "dashboard", element: <DashboardPage /> },
     ]
   },
   {
