@@ -1,25 +1,21 @@
-import aiofiles
-import shutil
 from datetime import datetime
 
-from uuid import UUID, uuid4
-from pathlib import Path
-from fastapi import UploadFile, status, HTTPException
+import anyio
+from uuid import UUID
+from fastapi import status, HTTPException
 
-from core.config import Settings
+from core.config import get_settings
 # from core.rbac import permissions_cache_key
 from database.redis import CacheRepo
-from domain.users import UserPatch
+from domain.users import UserPatch, AvatarPresignResponse
 from database.relational_db import (
     LanguagesInterface,
     RolesInterface,
     UserInterface,
     UoW,
     User,
-    Role,
 )
-
-settings = Settings()  # type: ignore
+from service.media import ALLOWED_AVATAR_CONTENT_TYPES, MediaStorageService
 
 
 class UserService:
@@ -29,13 +25,16 @@ class UserService:
         user_repo: UserInterface,
         lang_repo: LanguagesInterface,
         role_repo: RolesInterface,
+        media_storage: MediaStorageService,
         cache_repo: CacheRepo | None = None,
     ):
         self.uow = uow
         self.user_repo = user_repo
         self.lang_repo = lang_repo
         self.role_repo = role_repo
+        self.media_storage = media_storage
         self.cache_repo = cache_repo
+        self.settings = get_settings()
         
     async def get_user(self, user_id: UUID | str) -> User | None:
         return await self.user_repo.get_by_id(user_id)
@@ -50,50 +49,100 @@ class UserService:
             
         await self.uow.session.refresh(user)
 
-    async def add_picture(
+    async def create_avatar_presign(
         self,
-        file: UploadFile,
-        user: User
-    ) -> None:
-        folder = Path(settings.MEDIA_DIR, "users", str(user.id))
-        if folder.exists():
-            shutil.rmtree(folder)
-        folder.mkdir(parents=True, exist_ok=True)
-
-        if file.content_type not in ("image/jpeg", "image/png"):
+        *,
+        user: User,
+        filename: str,
+        content_type: str,
+    ) -> AvatarPresignResponse:
+        if content_type not in ALLOWED_AVATAR_CONTENT_TYPES:
+            allowed = ", ".join(sorted(ALLOWED_AVATAR_CONTENT_TYPES))
             raise HTTPException(
-                status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-                detail="Only jpg / png allowed"
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unsupported avatar content type. Allowed: {allowed}",
             )
 
-        ext  = ".jpg" if file.content_type == "image/jpeg" else ".png"
-        name = f"{uuid4()}{ext}"
+        object_key = self.media_storage.build_avatar_key(user.id, filename, content_type)
+        upload_url = self.media_storage.create_presigned_upload_url(
+            bucket=self.settings.STORAGE_PUBLIC_BUCKET,
+            key=object_key,
+            content_type=content_type,
+            expires_in=self.settings.STORAGE_PRESIGN_EXPIRES_SEC,
+        )
+        public_url = self.media_storage.build_public_url(
+            bucket=self.settings.STORAGE_PUBLIC_BUCKET,
+            key=object_key,
+        )
 
-        file_path = folder / name
-        limit_bytes = settings.MAX_PHOTO_SIZE * 1024 * 1024
-        written = 0
-        async with aiofiles.open(file_path, "wb") as out:
-            while chunk := await file.read(1024 * 1024):
-                if written + len(chunk) > limit_bytes:
-                    try:
-                        await out.flush()
-                        await out.close()
-                    except Exception:
-                        pass
-                    try:
-                        file_path.unlink(missing_ok=True)
-                    except Exception:
-                        pass
-                    raise HTTPException(
-                        status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                        detail=f"File too large. Max {settings.MAX_PHOTO_SIZE} MB"
-                    )
-                await out.write(chunk)
-                written += len(chunk)
+        return AvatarPresignResponse(
+            object_key=object_key,
+            upload_url=upload_url,
+            public_url=public_url,
+            expires_in=self.settings.STORAGE_PRESIGN_EXPIRES_SEC,
+        )
 
-        url = f"{settings.SITE_URL}/{settings.MEDIA_DIR}/users/{user.id}/{name}"
+    async def confirm_avatar_upload(self, *, user: User, object_key: str) -> None:
+        expected_prefix = f"avatars/{user.id}/"
+        if not object_key.startswith(expected_prefix):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid avatar object key",
+            )
 
-        user.profile_pic_url = url
+        stat = await anyio.to_thread.run_sync(
+            lambda: self.media_storage.get_object_stat(
+                bucket=self.settings.STORAGE_PUBLIC_BUCKET,
+                key=object_key,
+            ),
+        )
+        if stat is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Avatar object not found in storage",
+            )
+
+        if stat.content_type not in ALLOWED_AVATAR_CONTENT_TYPES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Uploaded object has unsupported content type",
+            )
+
+        max_size_bytes = self.settings.MAX_PHOTO_SIZE * 1024 * 1024
+        if stat.size_bytes > max_size_bytes:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"Avatar file too large. Max {self.settings.MAX_PHOTO_SIZE} MB",
+            )
+
+        previous_avatar_key = user.avatar_key
+        user.avatar_key = object_key
+        await self.uow.commit()
+        await self.uow.session.refresh(user)
+
+        if previous_avatar_key and previous_avatar_key != object_key:
+            await anyio.to_thread.run_sync(
+                lambda: self.media_storage.delete_object(
+                    bucket=self.settings.STORAGE_PUBLIC_BUCKET,
+                    key=previous_avatar_key,
+                ),
+            )
+
+    async def remove_avatar(self, *, user: User) -> None:
+        if not user.avatar_key:
+            return
+
+        avatar_key = user.avatar_key
+        user.avatar_key = None
+        await self.uow.commit()
+        await self.uow.session.refresh(user)
+
+        await anyio.to_thread.run_sync(
+            lambda: self.media_storage.delete_object(
+                bucket=self.settings.STORAGE_PUBLIC_BUCKET,
+                key=avatar_key,
+            ),
+        )
 
     async def admin_list_users(
         self,
@@ -132,12 +181,11 @@ class UserService:
         return users, next_cursor
 
     async def admin_set_ban(self, target: User, banned: bool) -> User:
-        previous_version = target.auth_version
         target.banned = banned
         target.bump_auth_version()
         await self.uow.commit()
         await self.uow.session.refresh(target)
-        # await self._invalidate_permissions_cache(target.id, previous_version)
+        # await self._invalidate_permissions_cache(target.id, target.auth_version)
         return target
 
     async def list_languages(self, search: str, limit: int):
@@ -159,13 +207,12 @@ class UserService:
                 detail=f"Unknown roles: {missing_sorted}",
             )
 
-        previous_version = target.auth_version
         await self.user_repo.assign_roles(target, roles)
         target.bump_auth_version()
         await self.uow.commit()
         await self.uow.session.refresh(target)
 
-        # await self._invalidate_permissions_cache(target.id, previous_version)
+        # await self._invalidate_permissions_cache(target.id, target.auth_version)
         return target
 
     # async def _invalidate_permissions_cache(

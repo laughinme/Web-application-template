@@ -1,11 +1,17 @@
 from typing import TYPE_CHECKING
+from urllib.parse import quote
 from uuid import UUID, uuid4
-from datetime import date, datetime
+from datetime import datetime
 from sqlalchemy.orm import mapped_column, Mapped, relationship
-from sqlalchemy import ForeignKey, Uuid, String, Boolean, DateTime, Text, Index, Integer, Date
+from sqlalchemy import Uuid, String, Boolean, DateTime, Text, Index, Integer
 
+from core.config import get_settings
 from ..table_base import Base
 from ..mixins import TimestampMixin
+
+if TYPE_CHECKING:
+    from ..roles import Role
+
 
 class User(TimestampMixin, Base):
     __tablename__ = "users"
@@ -17,14 +23,9 @@ class User(TimestampMixin, Base):
     password_hash: Mapped[str] = mapped_column(Text, nullable=False)
     confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     
-    # Profile info
+    # Minimal profile for template
     username: Mapped[str | None] = mapped_column(String, nullable=True)
-    profile_pic_url: Mapped[str | None] = mapped_column(String, nullable=True)
-    bio: Mapped[str | None] = mapped_column(String, nullable=True)
-    birth_date: Mapped[date | None] = mapped_column(Date, nullable=True)
-    language_code: Mapped[str | None] = mapped_column(
-        String(2), ForeignKey('languages.code'), nullable=True
-    )
+    avatar_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
     
     # Service
     is_onboarded: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
@@ -59,6 +60,15 @@ class User(TimestampMixin, Base):
     @property
     def role_slugs(self) -> list[str]:
         return [role.slug for role in self.roles]
+
+    @property
+    def avatar_url(self) -> str | None:
+        if not self.avatar_key:
+            return None
+
+        settings = get_settings()
+        encoded_key = quote(self.avatar_key, safe="/")
+        return f"{settings.STORAGE_ENDPOINT_PUBLIC}/{settings.STORAGE_PUBLIC_BUCKET}/{encoded_key}"
 
     def has_roles(self, *slugs: str) -> bool:
         if not slugs:

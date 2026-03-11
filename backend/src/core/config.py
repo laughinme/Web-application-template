@@ -35,6 +35,17 @@ class Settings(BaseSettings):
     MEDIA_DIR: str = 'media'
     MAX_PHOTO_SIZE: int = 5  # in MB
     
+    # S3-compatible object storage (MinIO, S3, R2, etc.)
+    STORAGE_ENDPOINT_INTERNAL: str = "http://minio:9000"
+    STORAGE_ENDPOINT_PUBLIC: str = "http://localhost"
+    STORAGE_REGION: str = "us-east-1"
+    STORAGE_ACCESS_KEY: str = "minioadmin"
+    STORAGE_SECRET_KEY: str = "minioadmin"
+    STORAGE_PUBLIC_BUCKET: str = "media-public"
+    STORAGE_PRIVATE_BUCKET: str = "media-private"
+    STORAGE_PRESIGN_EXPIRES_SEC: int = 600
+    STORAGE_USE_PATH_STYLE: bool = True
+    
     # Auth Settings    
     JWT_PRIVATE_KEY: str | None = None
     JWT_PUBLIC_KEY: str | None = None
@@ -89,6 +100,13 @@ class Settings(BaseSettings):
             return value
         return str(value).encode()
 
+    @field_validator("STORAGE_ENDPOINT_INTERNAL", "STORAGE_ENDPOINT_PUBLIC", mode="before")
+    @classmethod
+    def _normalize_storage_endpoint(cls, value: str) -> str:
+        if not isinstance(value, str):
+            return value
+        return value.rstrip("/")
+
     @model_validator(mode="after")
     def _load_jwt_keys(self) -> "Settings":
         if not self.JWT_PRIVATE_KEY and self.JWT_PRIVATE_KEY_PATH:
@@ -115,6 +133,12 @@ def get_settings() -> Settings:
 
 def clear_settings_cache() -> None:
     get_settings.cache_clear()
+    try:
+        from service.media import clear_media_storage_service_cache
+        clear_media_storage_service_cache()
+    except Exception:
+        # Media storage service may be unavailable during bootstrap/import phases.
+        pass
 
 
 def configure_logging(settings: Settings | None = None) -> None:
