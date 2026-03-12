@@ -71,15 +71,13 @@ export default function AuthPage(): ReactElement {
     }
 
     const credentials: AuthCredentials = { email: email.trim(), password };
-
     try {
       if (mode === "login") {
         await login(credentials);
       } else {
         await register(credentials);
       }
-    } catch (err) {
-      console.error("Ошибка аутентификации:", err);
+    } catch {
     }
   };
 

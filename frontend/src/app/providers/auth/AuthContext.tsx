@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import * as api from "@/shared/api";
+import * as api from "@/shared/api/auth";
 import {
   apiPublic,
   setAccessToken as setAxiosAccessToken,
@@ -18,8 +18,7 @@ const readSkipSessionRestoreFlag = (): boolean => {
   }
   try {
     return window.sessionStorage.getItem(SKIP_SESSION_RESTORE_STORAGE_KEY) === "1";
-  } catch (error) {
-    console.warn("[Auth] Не удалось прочитать флаг пропуска восстановления сессии.", error);
+  } catch {
     return false;
   }
 };
@@ -34,8 +33,7 @@ const writeSkipSessionRestoreFlag = (value: boolean): void => {
     } else {
       window.sessionStorage.removeItem(SKIP_SESSION_RESTORE_STORAGE_KEY);
     }
-  } catch (error) {
-    console.warn("[Auth] Не удалось записать флаг пропуска восстановления сессии.", error);
+  } catch {
   }
 };
 
@@ -81,18 +79,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const {
     data: user,
     isLoading: isUserLoading,
-    isError,
-    error: userError
+    isError
   } = useQuery<AuthUser>({
     queryKey: ["me"],
-    queryFn: async () => {
-      try {
-        return await api.getMyProfile();
-      } catch (error) {
-        console.log("API profile fetch failed:", error);
-        throw error;
-      }
-    },
+    queryFn: async () => api.getMyProfile(),
     enabled: Boolean(accessToken),
     retry: 1
   });
@@ -138,19 +128,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   useEffect(() => {
     if (isError) {
-      console.error("Ошибка useQuery('me'): Не удалось загрузить профиль. Выход из системы.", userError);
       clearSession();
     }
-  }, [isError, userError, clearSession]);
+  }, [isError, clearSession]);
 
   useEffect(() => {
     if (hasAttemptedSessionRestore.current) {
       return;
     }
     hasAttemptedSessionRestore.current = true;
-
     if (skipSessionRestoreRef.current) {
-      console.log("[Auth] Пропускаем восстановление сессии после явного выхода.");
       setIsRestoringSession(false);
       return;
     }
@@ -158,9 +145,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     (async () => {
       try {
         const csrfToken = await resolveCsrfToken();
-
         if (!csrfToken) {
-          console.log("[Auth] CSRF-токен не найден, прекращаем попытку восстановления.");
           return;
         }
 
@@ -177,8 +162,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           setAccessToken(data.access_token);
           setSkipSessionRestore(false);
         }
-      } catch (err) {
-        console.error("[Auth] Ошибка при запросе на /auth/refresh:", err);
+      } catch {
       } finally {
         setIsRestoringSession(false);
       }

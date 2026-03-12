@@ -40,11 +40,7 @@ export const setUnauthorizedHandler = (handler: (() => void) | null): void => {
 const notifyUnauthorized = (): void => {
   setAccessToken(null);
   if (unauthorizedHandler) {
-    try {
-      unauthorizedHandler();
-    } catch (handlerError) {
-      console.error("[Interceptor] Ошибка обработчика выхода из системы.", handlerError);
-    }
+    unauthorizedHandler();
   }
 };
 
@@ -74,9 +70,7 @@ const refreshAccessToken = async (): Promise<string | null> => {
   if (!refreshPromise) {
     refreshPromise = (async () => {
       const csrfToken = await resolveCsrfToken();
-
       if (!csrfToken) {
-        console.error("[Interceptor] Не найден CSRF-токен для обновления. Выход из системы.");
         return null;
       }
 
@@ -125,10 +119,8 @@ apiProtected.interceptors.response.use(
     ) {
       originalRequest._retry = true;
       try {
-        console.log("[Interceptor] Перехвачена ошибка 401. Пытаемся обновить токен...");
         const newAccessToken = await refreshAccessToken();
         if (newAccessToken) {
-          console.log("[Interceptor] Токен успешно обновлен. Повторяем исходный запрос.");
           setAccessToken(newAccessToken);
           const headers = toAxiosHeaders(originalRequest.headers);
           headers.set("Authorization", `Bearer ${newAccessToken}`);
@@ -137,11 +129,7 @@ apiProtected.interceptors.response.use(
         }
 
         notifyUnauthorized();
-      } catch (refreshError) {
-        console.error(
-          "[Interceptor] КРИТИЧЕСКАЯ ОШИБКА: Не удалось обновить токен. Выход из системы.",
-          refreshError
-        );
+      } catch {
         notifyUnauthorized();
       }
     }
