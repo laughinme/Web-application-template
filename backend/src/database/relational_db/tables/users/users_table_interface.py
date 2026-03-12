@@ -1,5 +1,5 @@
 from uuid import UUID
-from datetime import date, datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pydantic import EmailStr
 from sqlalchemy import select, and_, or_, func, delete, insert
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -92,7 +92,30 @@ class UserInterface:
             )
             .group_by(day)
             .order_by(day)
-            .where(User.created_at >= datetime.now() - timedelta(days=days))
+            .where(User.created_at >= datetime.now(UTC) - timedelta(days=days))
         )
         
         return result.mappings().all()
+
+    async def count_users(
+        self,
+        *,
+        banned: bool | None = None,
+        onboarded: bool | None = None,
+    ) -> int:
+        stmt = select(func.count(User.id))
+        if banned is not None:
+            stmt = stmt.where(User.banned == banned)
+        if onboarded is not None:
+            stmt = stmt.where(User.is_onboarded == onboarded)
+
+        result = await self.session.scalar(stmt)
+        return int(result or 0)
+
+    async def count_registered_since(self, since: datetime) -> int:
+        stmt = (
+            select(func.count(User.id))
+            .where(User.created_at >= since)
+        )
+        result = await self.session.scalar(stmt)
+        return int(result or 0)

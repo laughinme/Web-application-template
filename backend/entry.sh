@@ -6,7 +6,7 @@ cd src
 alembic upgrade head
 
 echo "Starting the application..."
-uvicorn main:app \
+exec uvicorn main:app \
   --host "${API_HOST:-0.0.0.0}" \
   --port "${API_PORT:-8080}" \
   --proxy-headers \

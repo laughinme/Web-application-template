@@ -5,10 +5,13 @@ import time
 from collections.abc import AsyncGenerator
 from pathlib import Path
 
+import boto3
 import pytest
 import pytest_asyncio
 from alembic import command
 from alembic.config import Config
+from botocore.client import Config as BotoConfig
+from botocore.exceptions import ClientError
 from faker import Faker
 from httpx import ASGITransport, AsyncClient
 from redis.asyncio import Redis
@@ -25,6 +28,15 @@ os.environ.setdefault("APP_STAGE", "dev")
 os.environ.setdefault("DEBUG", "true")
 os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://postgres:secret@localhost:5439/templatepg_test")
 os.environ.setdefault("REDIS_URL", "redis://localhost:6380/9")
+os.environ.setdefault("STORAGE_ENDPOINT_INTERNAL", "http://localhost:9002")
+os.environ.setdefault("STORAGE_ENDPOINT_PUBLIC", "http://localhost:9002")
+os.environ.setdefault("STORAGE_REGION", "us-east-1")
+os.environ.setdefault("STORAGE_ACCESS_KEY", "minioadmin")
+os.environ.setdefault("STORAGE_SECRET_KEY", "minioadmin")
+os.environ.setdefault("STORAGE_PUBLIC_BUCKET", "media-public")
+os.environ.setdefault("STORAGE_PRIVATE_BUCKET", "media-private")
+os.environ.setdefault("STORAGE_USE_PATH_STYLE", "true")
+os.environ.setdefault("STORAGE_AUTO_CREATE_BUCKETS", "false")
 os.environ.setdefault("JWT_PRIVATE_KEY_PATH", str(SECRETS_DIR / "jwt_private_key.pem"))
 os.environ.setdefault("JWT_PUBLIC_KEY_PATH", str(SECRETS_DIR / "jwt_public_key.pem"))
 os.environ.setdefault("SCHEDULER_ENABLED", "false")
@@ -44,6 +56,43 @@ async def _wait_for_redis(redis: Redis, attempts: int = 30, delay: float = 1.0) 
             last_error = exc
             await asyncio.sleep(delay)
     raise RuntimeError("Could not connect to redis for integration tests") from last_error
+
+
+async def _wait_for_minio(attempts: int = 30, delay: float = 1.0) -> None:
+    endpoint = os.environ["STORAGE_ENDPOINT_INTERNAL"]
+    access_key = os.environ["STORAGE_ACCESS_KEY"]
+    secret_key = os.environ["STORAGE_SECRET_KEY"]
+    region = os.environ["STORAGE_REGION"]
+    public_bucket = os.environ["STORAGE_PUBLIC_BUCKET"]
+    private_bucket = os.environ["STORAGE_PRIVATE_BUCKET"]
+
+    client = boto3.client(
+        "s3",
+        endpoint_url=endpoint,
+        region_name=region,
+        aws_access_key_id=access_key,
+        aws_secret_access_key=secret_key,
+        config=BotoConfig(signature_version="s3v4", s3={"addressing_style": "path"}),
+    )
+
+    last_error = None
+    for _ in range(attempts):
+        try:
+            await asyncio.to_thread(
+                lambda: client.head_bucket(Bucket=public_bucket)
+            )
+            await asyncio.to_thread(
+                lambda: client.head_bucket(Bucket=private_bucket)
+            )
+            return
+        except ClientError as exc:
+            last_error = exc
+            await asyncio.sleep(delay)
+        except Exception as exc:
+            last_error = exc
+            await asyncio.sleep(delay)
+
+    raise RuntimeError("Could not connect to minio for integration tests") from last_error
 
 
 @pytest.fixture(scope="session")
@@ -87,6 +136,8 @@ async def _integration_state(
     redis_client: Redis,
 ) -> AsyncGenerator[None, None]:
     from database.relational_db import dispose_engine, get_engine
+
+    await _wait_for_minio()
 
     await dispose_engine()
     engine = get_engine()

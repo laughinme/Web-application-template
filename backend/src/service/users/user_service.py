@@ -1,6 +1,6 @@
 from datetime import datetime
 
-import anyio
+import asyncio
 from uuid import UUID
 from fastapi import status, HTTPException
 
@@ -90,7 +90,7 @@ class UserService:
                 detail="Invalid avatar object key",
             )
 
-        stat = await anyio.to_thread.run_sync(
+        stat = await asyncio.to_thread(
             lambda: self.media_storage.get_object_stat(
                 bucket=self.settings.STORAGE_PUBLIC_BUCKET,
                 key=object_key,
@@ -121,7 +121,7 @@ class UserService:
         await self.uow.session.refresh(user)
 
         if previous_avatar_key and previous_avatar_key != object_key:
-            await anyio.to_thread.run_sync(
+            await asyncio.to_thread(
                 lambda: self.media_storage.delete_object(
                     bucket=self.settings.STORAGE_PUBLIC_BUCKET,
                     key=previous_avatar_key,
@@ -137,7 +137,7 @@ class UserService:
         await self.uow.commit()
         await self.uow.session.refresh(user)
 
-        await anyio.to_thread.run_sync(
+        await asyncio.to_thread(
             lambda: self.media_storage.delete_object(
                 bucket=self.settings.STORAGE_PUBLIC_BUCKET,
                 key=avatar_key,

@@ -156,3 +156,44 @@ class MediaStorageService:
     def ensure_buckets(self) -> None:
         self.ensure_bucket(self.public_bucket)
         self.ensure_bucket(self.private_bucket)
+
+    def check_health(self) -> None:
+        """Raise an exception if storage is unreachable or buckets are missing."""
+        self._internal_client.list_buckets()
+        self._internal_client.head_bucket(Bucket=self.public_bucket)
+        self._internal_client.head_bucket(Bucket=self.private_bucket)
+
+    def put_object_bytes(
+        self,
+        *,
+        bucket: str,
+        key: str,
+        payload: bytes,
+        content_type: str,
+    ) -> None:
+        self._internal_client.put_object(
+            Bucket=bucket,
+            Key=key,
+            Body=payload,
+            ContentType=content_type,
+        )
+
+    def delete_prefix(self, *, bucket: str, prefix: str) -> int:
+        deleted_count = 0
+        paginator = self._internal_client.get_paginator("list_objects_v2")
+        for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+            contents = page.get("Contents", [])
+            if not contents:
+                continue
+
+            objects = [{"Key": item["Key"]} for item in contents if "Key" in item]
+            if not objects:
+                continue
+
+            self._internal_client.delete_objects(
+                Bucket=bucket,
+                Delete={"Objects": objects, "Quiet": True},
+            )
+            deleted_count += len(objects)
+
+        return deleted_count

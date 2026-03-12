@@ -45,6 +45,12 @@ class Settings(BaseSettings):
     STORAGE_PRIVATE_BUCKET: str = "media-private"
     STORAGE_PRESIGN_EXPIRES_SEC: int = 600
     STORAGE_USE_PATH_STYLE: bool = True
+    STORAGE_AUTO_CREATE_BUCKETS: bool = True
+
+    # Optional notifications adapter
+    NOTIFICATIONS_PROVIDER: Literal["noop", "telegram"] = "noop"
+    TELEGRAM_BOT_TOKEN: str = ""
+    TELEGRAM_CHAT_ID: str = ""
     
     # Auth Settings    
     JWT_PRIVATE_KEY: str | None = None
@@ -54,7 +60,7 @@ class Settings(BaseSettings):
     JWT_ALGO: str = 'RS256'
     ACCESS_TTL: int = 60 * 15
     REFRESH_TTL: int = 60 * 60 * 24 * 7
-    CSRF_HMAC_KEY: bytes = b"dev-change-me"
+    CSRF_HMAC_KEY: bytes = b"change-me"
 
     # Cookie settings
     COOKIE_SECURE: bool = False

@@ -1,5 +1,4 @@
 from typing import Literal
-from fastapi import Request
 from sqlalchemy.exc import IntegrityError
 
 from database.relational_db import (
@@ -12,6 +11,7 @@ from domain.auth import UserRegister, UserLogin
 from domain.auth.enums import DEFAULT_ROLE
 from core.config import Settings
 from core.crypto import hash_password, verify_password, needs_rehash
+from service.notifications import NotificationService
 from .exceptions import AlreadyExists, WrongCredentials
 from ..tokens import TokenService
 
@@ -24,11 +24,13 @@ class CredentialsService:
         user_repo: UserInterface,
         role_repo: RolesInterface,
         token_service: TokenService,
+        notification_service: NotificationService,
     ):
         self.uow = uow
         self.user_repo = user_repo
         self.role_repo = role_repo
         self.token_service = token_service
+        self.notification_service = notification_service
         
     @staticmethod
     async def _check_password(password: str, password_hash: str) -> bool:
@@ -73,6 +75,10 @@ class CredentialsService:
             raise RuntimeError("Default role is missing from the database")
 
         await self.user_repo.assign_roles(user, [default_role])
+
+        await self.notification_service.send_text(
+            f"New user registered: {payload.email}"
+        )
         
         access, refresh, csrf = await self.token_service.issue_tokens(user, src)
         return access, refresh, csrf
