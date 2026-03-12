@@ -12,7 +12,6 @@ export function Header() {
             className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60"
         >
             <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-8">
-                {/* ─── Left: Brand/Logo ─── */}
                 <div className="flex items-center gap-6">
                     <Link to="/" className="flex items-center space-x-2">
                         <motion.div
@@ -24,7 +23,6 @@ export function Header() {
                         </motion.div>
                     </Link>
 
-                    {/* ─── Navigation Links ─── */}
                     <nav className="hidden md:flex gap-6">
                         <motion.div whileHover={{ y: -1 }}>
                             <Link
@@ -37,9 +35,7 @@ export function Header() {
                     </nav>
                 </div>
 
-                {/* ─── Right: Actions / User Menu ─── */}
                 <div className="flex items-center gap-4">
-                    {/* Mobile Dashboard link */}
                     <motion.div className="md:hidden" whileHover={{ y: -1 }}>
                         <Link
                             to="/dashboard"

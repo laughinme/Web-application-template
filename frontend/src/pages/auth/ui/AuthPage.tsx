@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type ReactElement } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useAuth } from "@/app/providers/auth/useAuth";
 import type { AuthCredentials } from "@/entities/auth/model";
@@ -8,10 +8,6 @@ import { SignupForm } from "@/features/auth/signup-form";
 type Mode = "login" | "register";
 
 const getErrorMessage = (error: unknown): string => {
-  if (!error) {
-    return "Произошла ошибка";
-  }
-
   if (typeof error === "string") {
     return error;
   }
@@ -68,7 +64,7 @@ export default function AuthPage(): ReactElement {
   const errorMessage = error ? getErrorMessage(error) : null;
   const canSubmit = Boolean(email.trim() && password.trim() && !isLoading);
 
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!canSubmit) {
       return;

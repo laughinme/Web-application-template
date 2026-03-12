@@ -10,9 +10,6 @@ function App() {
       <div className="min-h-screen flex items-center justify-center bg-red-100">
         <div className="p-8 bg-white rounded-lg shadow-md text-center">
           <h1 className="text-2xl font-bold text-red-600 mb-2">Ошибка конфигурации</h1>
-          <p className="text-slate-700">
-            Контекст аутентификации не найден. Убедитесь, что ваше приложение обернуто в <code>&lt;AuthProvider&gt;</code>.
-          </p>
         </div>
       </div>
     );
