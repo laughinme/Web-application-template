@@ -11,7 +11,7 @@ from domain.auth import UserRegister, UserLogin
 from domain.auth.enums import DEFAULT_ROLE
 from core.config import Settings
 from core.crypto import hash_password, verify_password, needs_rehash
-from service.notifications import NotificationService
+from service.notifications import NotificationApplicationService
 from .exceptions import AlreadyExists, WrongCredentials
 from ..tokens import TokenService
 
@@ -24,7 +24,7 @@ class CredentialsService:
         user_repo: UserInterface,
         role_repo: RolesInterface,
         token_service: TokenService,
-        notification_service: NotificationService,
+        notification_service: NotificationApplicationService,
     ):
         self.uow = uow
         self.user_repo = user_repo
@@ -76,9 +76,7 @@ class CredentialsService:
 
         await self.user_repo.assign_roles(user, [default_role])
 
-        await self.notification_service.send_text(
-            f"New user registered: {payload.email}"
-        )
+        await self.notification_service.enqueue_user_registered(user)
         
         access, refresh, csrf = await self.token_service.issue_tokens(user, src)
         return access, refresh, csrf

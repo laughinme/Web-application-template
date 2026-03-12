@@ -47,10 +47,24 @@ class Settings(BaseSettings):
     STORAGE_USE_PATH_STYLE: bool = True
     STORAGE_AUTO_CREATE_BUCKETS: bool = True
 
-    # Optional notifications adapter
-    NOTIFICATIONS_PROVIDER: Literal["noop", "telegram"] = "noop"
+    # Notifications
+    NOTIFICATIONS_ENABLED: bool = True
+    EMAIL_PROVIDER: Literal["noop", "resend"] = "noop"
+    RESEND_API_KEY: str = ""
+    EMAIL_FROM: str = "noreply@example.com"
+    EMAIL_REPLY_TO: str | None = None
+
+    TELEGRAM_ENABLED: bool = False
     TELEGRAM_BOT_TOKEN: str = ""
-    TELEGRAM_CHAT_ID: str = ""
+    TELEGRAM_BOT_USERNAME: str = ""
+    TELEGRAM_WEBHOOK_URL: str = ""
+    TELEGRAM_WEBHOOK_SECRET: str = ""
+    TELEGRAM_PARSE_MODE: Literal["HTML", "Markdown", "MarkdownV2"] = "HTML"
+    TELEGRAM_LINK_TOKEN_TTL_SEC: int = 900
+
+    NOTIFICATION_MAX_ATTEMPTS: int = 5
+    NOTIFICATION_PROCESSING_TIMEOUT_SEC: int = 300
+    NOTIFICATION_DISPATCH_BATCH_SIZE: int = 100
     
     # Auth Settings    
     JWT_PRIVATE_KEY: str | None = None

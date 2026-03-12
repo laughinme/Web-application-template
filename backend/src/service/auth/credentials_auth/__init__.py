@@ -7,7 +7,7 @@ from database.relational_db import (
     UserInterface,
     get_uow,
 )
-from service.notifications import NotificationService, get_notification_service
+from service.notifications import NotificationApplicationService, get_notification_service
 from .credentials_service import CredentialsService
 from ..tokens import TokenService, get_token_service
 
@@ -15,7 +15,7 @@ from ..tokens import TokenService, get_token_service
 async def get_credentials_service(
     uow: Annotated[UoW, Depends(get_uow)],
     token_service: Annotated[TokenService, Depends(get_token_service)],
-    notification_service: Annotated[NotificationService, Depends(get_notification_service)],
+    notification_service: Annotated[NotificationApplicationService, Depends(get_notification_service)],
 ) -> CredentialsService:
     user_repo = UserInterface(uow.session)
     role_repo = RolesInterface(uow.session)

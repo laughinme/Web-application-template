@@ -16,6 +16,7 @@ from database.redis import close_redis, init_redis
 from database.relational_db import dispose_engine, get_session_factory, wait_for_db
 from scheduler import init_scheduler, stop_scheduler
 from service.media import get_media_storage_service
+from service.telegram import close_telegram_bot, sync_telegram_webhook
 
 
 logger = logging.getLogger(__name__)
@@ -45,6 +46,11 @@ def create_app(
                 storage = get_media_storage_service()
                 await asyncio.to_thread(storage.ensure_buckets)
 
+            if settings.TELEGRAM_ENABLED and settings.TELEGRAM_BOT_TOKEN:
+                await sync_telegram_webhook(
+                    settings=settings,
+                )
+
             should_run_scheduler = (
                 settings.SCHEDULER_ENABLED if enable_scheduler is None else enable_scheduler
             )
@@ -54,6 +60,8 @@ def create_app(
             yield
         finally:
             stop_scheduler(scheduler)
+            if settings.TELEGRAM_ENABLED and settings.TELEGRAM_BOT_TOKEN:
+                await close_telegram_bot()
             await close_redis()
             await dispose_engine()
 

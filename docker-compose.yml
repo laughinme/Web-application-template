@@ -37,6 +37,45 @@ services:
       - "8080:8080"
     restart: unless-stopped
 
+  notification-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: notification-worker
+    env_file:
+      - ./backend/.env
+    environment:
+      APP_STAGE: dev
+      API_HOST: 0.0.0.0
+      API_PORT: 8080
+      SITE_URL: http://localhost
+      COOKIE_SECURE: "false"
+      COOKIE_SAMESITE: "lax"
+      DATABASE_URL: postgresql+asyncpg://postgres:secret@db:5432/templatepg
+      REDIS_URL: redis://redis:6379/0
+      STORAGE_ENDPOINT_INTERNAL: http://minio:9000
+      STORAGE_ENDPOINT_PUBLIC: http://localhost
+      STORAGE_REGION: us-east-1
+      STORAGE_ACCESS_KEY: minioadmin
+      STORAGE_SECRET_KEY: minioadmin
+      STORAGE_PUBLIC_BUCKET: media-public
+      STORAGE_PRIVATE_BUCKET: media-private
+      STORAGE_PRESIGN_EXPIRES_SEC: 600
+      STORAGE_USE_PATH_STYLE: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend/secrets:/app/secrets:ro
+    restart: unless-stopped
+    entrypoint:
+      - /bin/sh
+      - -lc
+    command: >-
+      cd src && alembic upgrade head && arq workers.arq_worker.WorkerSettings
+
   nginx:
     build:
       context: .

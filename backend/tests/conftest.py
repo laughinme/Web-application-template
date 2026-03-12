@@ -41,7 +41,7 @@ os.environ.setdefault("JWT_PRIVATE_KEY_PATH", str(SECRETS_DIR / "jwt_private_key
 os.environ.setdefault("JWT_PUBLIC_KEY_PATH", str(SECRETS_DIR / "jwt_public_key.pem"))
 os.environ.setdefault("SCHEDULER_ENABLED", "false")
 
-from core.config import clear_settings_cache
+from core.config import clear_settings_cache  # noqa: E402
 
 clear_settings_cache()
 
@@ -142,7 +142,19 @@ async def _integration_state(
     await dispose_engine()
     engine = get_engine()
     async with engine.begin() as conn:
-        await conn.execute(text("TRUNCATE TABLE user_roles, users RESTART IDENTITY CASCADE"))
+        await conn.execute(
+            text(
+                "TRUNCATE TABLE "
+                "notification_deliveries, "
+                "notification_events, "
+                "notification_preferences, "
+                "telegram_links, "
+                "telegram_link_tokens, "
+                "user_roles, "
+                "users "
+                "RESTART IDENTITY CASCADE"
+            )
+        )
 
     await redis_client.flushdb()
     yield
