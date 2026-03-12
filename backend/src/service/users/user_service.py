@@ -1,8 +1,6 @@
-from datetime import datetime
-
 import asyncio
+from datetime import datetime
 from uuid import UUID
-from fastapi import status, HTTPException
 
 from core.config import get_settings
 # from core.rbac import permissions_cache_key
@@ -16,6 +14,15 @@ from database.relational_db import (
     User,
 )
 from service.media import ALLOWED_AVATAR_CONTENT_TYPES, MediaStorageService
+from .exceptions import (
+    AvatarObjectNotFoundError,
+    AvatarTooLargeError,
+    AvatarUnsupportedContentTypeError,
+    InvalidAvatarObjectKeyError,
+    InvalidCursorError,
+    UnknownRolesError,
+    UnsupportedAvatarContentTypeError,
+)
 
 
 class UserService:
@@ -57,11 +64,7 @@ class UserService:
         content_type: str,
     ) -> AvatarPresignResponse:
         if content_type not in ALLOWED_AVATAR_CONTENT_TYPES:
-            allowed = ", ".join(sorted(ALLOWED_AVATAR_CONTENT_TYPES))
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Unsupported avatar content type. Allowed: {allowed}",
-            )
+            raise UnsupportedAvatarContentTypeError(list(ALLOWED_AVATAR_CONTENT_TYPES))
 
         object_key = self.media_storage.build_avatar_key(user.id, filename, content_type)
         upload_url = self.media_storage.create_presigned_upload_url(
@@ -85,10 +88,7 @@ class UserService:
     async def confirm_avatar_upload(self, *, user: User, object_key: str) -> None:
         expected_prefix = f"avatars/{user.id}/"
         if not object_key.startswith(expected_prefix):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid avatar object key",
-            )
+            raise InvalidAvatarObjectKeyError()
 
         stat = await asyncio.to_thread(
             lambda: self.media_storage.get_object_stat(
@@ -97,23 +97,14 @@ class UserService:
             ),
         )
         if stat is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Avatar object not found in storage",
-            )
+            raise AvatarObjectNotFoundError()
 
         if stat.content_type not in ALLOWED_AVATAR_CONTENT_TYPES:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Uploaded object has unsupported content type",
-            )
+            raise AvatarUnsupportedContentTypeError()
 
         max_size_bytes = self.settings.MAX_PHOTO_SIZE * 1024 * 1024
         if stat.size_bytes > max_size_bytes:
-            raise HTTPException(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail=f"Avatar file too large. Max {self.settings.MAX_PHOTO_SIZE} MB",
-            )
+            raise AvatarTooLargeError(self.settings.MAX_PHOTO_SIZE)
 
         previous_avatar_key = user.avatar_key
         user.avatar_key = object_key
@@ -160,7 +151,7 @@ class UserService:
                 cursor_created_at = datetime.fromisoformat(ts_str)
                 cursor_id = UUID(id_str)
             except Exception:
-                raise HTTPException(400, detail='Invalid cursor')
+                raise InvalidCursorError()
 
         users = await self.user_repo.admin_list_users(
             banned=banned,
@@ -201,11 +192,7 @@ class UserService:
         found_slugs = {role.slug for role in roles}
         missing = [slug for slug in unique_slugs if slug not in found_slugs]
         if missing:
-            missing_sorted = ", ".join(sorted(missing))
-            raise HTTPException(
-                status.HTTP_404_NOT_FOUND,
-                detail=f"Unknown roles: {missing_sorted}",
-            )
+            raise UnknownRolesError(missing)
 
         await self.user_repo.assign_roles(target, roles)
         target.bump_auth_version()

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from fastapi import Depends
 
 from core.config import Settings, get_settings

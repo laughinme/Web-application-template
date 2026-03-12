@@ -1,16 +1,16 @@
-from fastapi import HTTPException, status
+from core.errors import ConflictError, UnauthorizedError
 
-class WrongCredentials(HTTPException):
-    def __init__(self, *args, **kwargs):
-        super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail='Wrong credentials passed')
 
-class NotAuthenticated(HTTPException):
-    def __init__(self, *args, **kwargs):
-        super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail='Not authenticated')
+class WrongCredentials(UnauthorizedError):
+    error_code = "WRONG_CREDENTIALS"
+    default_detail = "Wrong credentials passed"
 
-class AlreadyExists(HTTPException):
-    def __init__(self, *args, **kwargs):
-        super().__init__(
-            status_code=status.HTTP_409_CONFLICT,
-            detail='This email or phone number is already taken'
-        )
+
+class NotAuthenticated(UnauthorizedError):
+    error_code = "NOT_AUTHENTICATED"
+    default_detail = "Not authenticated"
+
+
+class AlreadyExists(ConflictError):
+    error_code = "USER_ALREADY_EXISTS"
+    default_detail = "This email or phone number is already taken"

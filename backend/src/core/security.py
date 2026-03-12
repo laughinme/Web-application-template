@@ -2,9 +2,10 @@ import json
 from typing import Annotated, Literal
 
 import jwt
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from core.errors import ForbiddenError, UnauthorizedError
 from core.rbac import (
     ROLES_CACHE_TTL_SECONDS, 
     roles_cache_key,
@@ -13,7 +14,6 @@ from core.rbac import (
 )
 from database.redis import CacheRepo, get_redis
 from database.relational_db import User
-from domain.auth import SystemPermission, SystemRole
 from service.auth import TokenService, get_token_service
 from service.users import UserService, get_user_service
 # from service.organizations import OrganizationService, get_organization_service
@@ -30,18 +30,16 @@ async def extract_jti(request: Request) -> str:
         if auth and auth.lower().startswith("bearer "):
             token = auth.split(" ", 1)[1]
     if not token:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Missing refresh token")
+        raise UnauthorizedError("Missing refresh token")
     try:
         payload = jwt.decode(
             token, options={"verify_signature": False, "verify_exp": False}
         )
     except jwt.PyJWTError as exc:
-        raise HTTPException(
-            status.HTTP_401_UNAUTHORIZED, "Bad refresh token passed"
-        ) from exc
+        raise UnauthorizedError("Bad refresh token passed") from exc
     jti = payload.get("jti")
     if not jti:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Bad refresh token passed")
+        raise UnauthorizedError("Bad refresh token passed")
     return jti
 
 async def parse_token(
@@ -50,7 +48,7 @@ async def parse_token(
 ) -> dict[str, int | str]:
     payload = await token_svc.verify_access(creds.credentials)
     if payload is None:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Bad access token passed")
+        raise UnauthorizedError("Bad access token passed")
     
     return payload
 
@@ -61,11 +59,10 @@ async def auth_user(
     user_id = str(payload["sub"])
     user = await svc.get_user(user_id)
     if user is None:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+        raise UnauthorizedError("Not authorized")
     if user.banned:
-        raise HTTPException(
-            status.HTTP_403_FORBIDDEN,
-            detail="Your account is banned, contact support: laughinmee@gmail.com",
+        raise ForbiddenError(
+            "Your account is banned, contact support: laughinmee@gmail.com",
         )
 
     return user
@@ -86,7 +83,7 @@ async def load_cached_roles(user: User) -> list[str]:
 
 def verify_auth_version(token_version: int | str | None, user: User) -> None:
     if token_version is None or int(token_version) != int(user.auth_version):
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Access token expired, please sign in again")
+        raise UnauthorizedError("Access token expired, please sign in again")
 
 
 def expand_roles(roles: list[str], implications: dict[str, set[str]]) -> set[str]:
@@ -132,7 +129,7 @@ def require(
         
         if scope == "global":
             if not expected.issubset(eff_roles):
-                raise HTTPException(status.HTTP_403_FORBIDDEN, detail="You don't have permission to do this")
+                raise ForbiddenError("You don't have permission to do this")
             return
         
         # elif scope == "org":

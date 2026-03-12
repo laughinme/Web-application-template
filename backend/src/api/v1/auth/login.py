@@ -1,7 +1,8 @@
 from typing import Annotated, Literal
-from fastapi import APIRouter, Depends, Response, Request, Header, HTTPException
+from fastapi import APIRouter, Depends, Response, Request, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
+from core.errors import UnauthorizedError
 from core.http.cookies import clear_auth_cookies, set_auth_cookies
 from service.auth import CredentialsService, get_credentials_service
 from domain.auth import UserLogin, TokenPair
@@ -61,7 +62,7 @@ async def logout(
 
     token = refresh_cookie or refresh_header
     if token is None:
-        raise HTTPException(401, 'Refresh token is not passed')
+        raise UnauthorizedError("Refresh token is not passed")
     
     await svc.logout(token)
     

@@ -1,13 +1,13 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Path
+from fastapi import APIRouter, Depends, Path
 
 from core.security import require
 from database.relational_db import User
-from domain.auth.enums import SystemPermission
 from domain.users import UserModel, UserRolesUpdate
 from service.users import UserService, get_user_service
+from service.users.exceptions import UserNotFoundError
 
 router = APIRouter()
 
@@ -25,7 +25,7 @@ async def set_roles(
 ):
     target = await svc.get_user(user_id)
     if target is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise UserNotFoundError()
 
     updated = await svc.admin_assign_roles(target, payload.roles)
     return updated

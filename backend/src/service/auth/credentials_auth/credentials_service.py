@@ -66,7 +66,7 @@ class CredentialsService:
         try:
             await self.user_repo.add(user)
             await self.uow.session.flush()
-        except IntegrityError as e:
+        except IntegrityError:
             raise AlreadyExists()
         
         

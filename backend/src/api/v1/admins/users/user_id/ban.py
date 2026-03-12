@@ -1,11 +1,12 @@
 from typing import Annotated
 from uuid import UUID
-from fastapi import APIRouter, Depends, Path, HTTPException
+from fastapi import APIRouter, Depends, Path, Query
 
 from core.security import require
 from database.relational_db import User
 from domain.users import UserModel
 from service.users import UserService, get_user_service
+from service.users.exceptions import UserNotFoundError
 
 router = APIRouter()
 
@@ -19,9 +20,11 @@ async def set_ban(
     user_id: Annotated[UUID, Path(...)],
     _: Annotated[User, Depends(require('admin'))],
     svc: Annotated[UserService, Depends(get_user_service)],
+    banned: bool = Query(True, description="Set to false to remove ban"),
 ):
     target = await svc.get_user(user_id)
     if target is None:
-        raise HTTPException(404, 'User not found')
-    updated = await svc.admin_set_ban(target, banned=True)
+        raise UserNotFoundError()
+    
+    updated = await svc.admin_set_ban(target, banned=banned)
     return updated

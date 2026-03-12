@@ -1,7 +1,8 @@
 from typing import Annotated
-from fastapi import APIRouter, Depends, Header, Request, Response, HTTPException
+from fastapi import APIRouter, Depends, Header, Request, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
+from core.errors import ForbiddenError, UnauthorizedError
 from core.rate_limit import REFRESH_LIMITER_STATE_KEY, build_rate_dependency
 from service.auth import TokenService, get_token_service
 from domain.auth import TokenPair
@@ -11,7 +12,7 @@ from core.security import extract_jti
 router = APIRouter()
 security = HTTPBearer(
     auto_error=False, 
-    description='Send refresh token as Bearer for non-browser clients'
+    description='Send refresh token as Bearer for non browser clients'
 )
 refresh_rate_limit = build_rate_dependency(
     REFRESH_LIMITER_STATE_KEY,
@@ -39,13 +40,13 @@ async def refresh_tokens(
     
     if cookie_refresh:
         if not x_csrf:
-            raise HTTPException(status_code=403, detail="Missing CSRF token")
+            raise ForbiddenError("Missing CSRF token")
         
         result = await svc.refresh_tokens(cookie_refresh, x_csrf)
         if result is None:
             # token invalid or csrf mismatch
             clear_auth_cookies(response)
-            raise HTTPException(status_code=401, detail="Invalid refresh token")
+            raise UnauthorizedError("Invalid refresh token")
         
         new_access, new_refresh, new_csrf = result
         
@@ -56,11 +57,11 @@ async def refresh_tokens(
         return TokenPair(access_token=new_access, refresh_token=None)
         
     if not creds or creds.scheme.lower() != "bearer":
-        raise HTTPException(status_code=401, detail="Missing refresh token")
+        raise UnauthorizedError("Missing refresh token")
     
     result = await svc.refresh_tokens(creds.credentials)
     if result is None:
-        raise HTTPException(status_code=401, detail="Invalid refresh token")
+        raise UnauthorizedError("Invalid refresh token")
 
     new_access, new_refresh, _ = result
     return TokenPair(access_token=new_access, refresh_token=new_refresh)

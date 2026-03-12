@@ -1,6 +1,7 @@
 from typing import Annotated
-from fastapi import APIRouter, Depends, Query, Response, HTTPException
+from fastapi import APIRouter, Depends, Query, Response
 
+from core.errors import BadRequestError
 from domain.misc import LanguageModel
 from service.users import UserService, get_user_service
 
@@ -21,7 +22,7 @@ async def list_languages(
 ):
     if query == "":
         if limit is not None:
-            raise HTTPException(400, detail="Limit is not allowed when query is empty")
+            raise BadRequestError("Limit is not allowed when query is empty")
         limit_ = 50
         response.headers["Cache-Control"] = "max-age=86400"
     else:

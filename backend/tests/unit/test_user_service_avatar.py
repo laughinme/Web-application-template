@@ -2,8 +2,8 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
-from fastapi import HTTPException
 
+from core.errors import DomainError
 from service.users.user_service import UserService
 
 
@@ -87,7 +87,7 @@ async def test_confirm_avatar_upload_rejects_foreign_object_key_prefix():
     )
     user = SimpleNamespace(id=uuid4(), avatar_key=None)
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(DomainError) as exc:
         await svc.confirm_avatar_upload(
             user=user,
             object_key=f"avatars/{uuid4()}/evil.jpg",
