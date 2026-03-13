@@ -1,4 +1,10 @@
-from core.errors import BadRequestError, NotFoundError, PayloadTooLargeError, UnauthorizedError
+from core.errors import (
+    BadRequestError,
+    ConflictError,
+    NotFoundError,
+    PayloadTooLargeError,
+    UnauthorizedError,
+)
 
 
 class NotAuthenticated(UnauthorizedError):
@@ -52,3 +58,23 @@ class UnknownRolesError(NotFoundError):
 class UserNotFoundError(NotFoundError):
     error_code = "USER_NOT_FOUND"
     default_detail = "User not found"
+
+
+class TelegramNotLinkedError(BadRequestError):
+    error_code = "TELEGRAM_NOT_LINKED"
+    default_detail = "Telegram account is not linked"
+
+
+class TelegramLinkTokenExpiredError(BadRequestError):
+    error_code = "TELEGRAM_LINK_TOKEN_EXPIRED"
+    default_detail = "Telegram link token expired"
+
+
+class TelegramLinkTokenInvalidError(BadRequestError):
+    error_code = "TELEGRAM_LINK_TOKEN_INVALID"
+    default_detail = "Telegram link token is invalid"
+
+
+class TelegramAlreadyLinkedError(ConflictError):
+    error_code = "TELEGRAM_ALREADY_LINKED"
+    default_detail = "This Telegram account is already linked to another user"

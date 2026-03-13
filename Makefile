@@ -1,5 +1,5 @@
 .PHONY: backend-install backend-lint backend-test-unit backend-test-integration test-up test-down \
-	up down logs smoke-backend
+	up down logs smoke-backend backend-worker bot-install bot-run
 
 BACKEND_DIR := backend
 TEST_COMPOSE_FILE := docker-compose.test.yml
@@ -43,3 +43,12 @@ down:
 	docker compose -p $(COMPOSE_PROJECT) -f $(COMPOSE_FILE) down --remove-orphans
 
 smoke-backend: backend-test-unit backend-test-integration
+
+backend-worker:
+	cd $(BACKEND_DIR) && PYTHONPATH=src poetry run arq workers.notifications_worker.WorkerSettings
+
+bot-install:
+	cd bot && poetry install --no-root
+
+bot-run:
+	cd bot && PYTHONPATH=src poetry run python -m telegram_bot.main

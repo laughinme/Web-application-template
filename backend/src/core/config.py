@@ -47,10 +47,17 @@ class Settings(BaseSettings):
     STORAGE_USE_PATH_STYLE: bool = True
     STORAGE_AUTO_CREATE_BUCKETS: bool = True
 
-    # Optional notifications adapter
-    NOTIFICATIONS_PROVIDER: Literal["noop", "telegram"] = "noop"
+    # Notifications
+    RESEND_API_KEY: str = ""
+    RESEND_FROM_EMAIL: str = ""
     TELEGRAM_BOT_TOKEN: str = ""
-    TELEGRAM_CHAT_ID: str = ""
+    TELEGRAM_BOT_USERNAME: str = ""
+    TELEGRAM_LINK_SECRET: str = ""
+    TELEGRAM_LINK_TOKEN_TTL_SEC: int = 900
+    NOTIFY_ADMIN_EMAIL: str = ""
+    NOTIFY_ADMIN_TELEGRAM_CHAT_ID: str = ""
+    ARQ_NOTIFICATIONS_QUEUE: str = "arq:queue:notifications"
+    ARQ_DEFAULT_MAX_TRIES: int = 5
     
     # Auth Settings    
     JWT_PRIVATE_KEY: str | None = None

@@ -37,6 +37,57 @@ services:
       - "8080:8080"
     restart: unless-stopped
 
+  backend-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend-worker
+    env_file:
+      - ./backend/.env
+    environment:
+      APP_MODE: worker
+      APP_STAGE: dev
+      API_HOST: 0.0.0.0
+      API_PORT: 8080
+      SITE_URL: http://localhost
+      COOKIE_SECURE: "false"
+      COOKIE_SAMESITE: "lax"
+      DATABASE_URL: postgresql+asyncpg://postgres:secret@db:5432/templatepg
+      REDIS_URL: redis://redis:6379/0
+      STORAGE_ENDPOINT_INTERNAL: http://minio:9000
+      STORAGE_ENDPOINT_PUBLIC: http://localhost
+      STORAGE_REGION: us-east-1
+      STORAGE_ACCESS_KEY: minioadmin
+      STORAGE_SECRET_KEY: minioadmin
+      STORAGE_PUBLIC_BUCKET: media-public
+      STORAGE_PRIVATE_BUCKET: media-private
+      STORAGE_PRESIGN_EXPIRES_SEC: 600
+      STORAGE_USE_PATH_STYLE: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    volumes:
+      - ./backend/secrets:/app/secrets:ro
+    restart: unless-stopped
+
+  telegram-bot:
+    build:
+      context: ./bot
+      dockerfile: Dockerfile
+    container_name: telegram-bot
+    env_file:
+      - ./bot/.env
+    environment:
+      BACKEND_URL: http://backend:8080
+    depends_on:
+      backend:
+        condition: service_started
+    restart: unless-stopped
+
   nginx:
     build:
       context: .

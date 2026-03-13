@@ -26,7 +26,7 @@ class User(TimestampMixin, Base):
     # Minimal profile for template
     username: Mapped[str | None] = mapped_column(String, nullable=True)
     avatar_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
-    
+
     # Service
     is_onboarded: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     banned: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 set -e
 
+APP_MODE="${APP_MODE:-api}"
+
+if [ "$APP_MODE" = "worker" ]; then
+  echo "Starting notifications worker..."
+  cd src
+  exec arq workers.notifications_worker.WorkerSettings
+fi
+
 echo "Running Alembic migrations..."
 cd src
 alembic upgrade head

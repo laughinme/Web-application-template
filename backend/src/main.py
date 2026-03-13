@@ -16,6 +16,7 @@ from database.redis import close_redis, init_redis
 from database.relational_db import dispose_engine, get_session_factory, wait_for_db
 from scheduler import init_scheduler, stop_scheduler
 from service.media import get_media_storage_service
+from task_queue import close_arq_pool, init_arq_pool
 
 
 logger = logging.getLogger(__name__)
@@ -38,6 +39,7 @@ def create_app(
                 await wait_for_db()
 
             redis = init_redis(settings)
+            await init_arq_pool(settings)
             if enable_rate_limiter:
                 await init_rate_limiters(app, redis)
 
@@ -54,6 +56,7 @@ def create_app(
             yield
         finally:
             stop_scheduler(scheduler)
+            await close_arq_pool()
             await close_redis()
             await dispose_engine()
 

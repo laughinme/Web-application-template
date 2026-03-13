@@ -1,13 +1,24 @@
 import asyncio
-from datetime import datetime
+import hashlib
+import secrets
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
+
+from sqlalchemy.exc import IntegrityError
 
 from core.config import get_settings
 # from core.rbac import permissions_cache_key
 from database.redis import CacheRepo
-from domain.users import UserPatch, AvatarPresignResponse
+from domain.users import (
+    AvatarPresignResponse,
+    TelegramDeeplinkResponse,
+    UserNotificationSettings,
+    UserNotificationSettingsPatch,
+    UserPatch,
+)
 from database.relational_db import (
     LanguagesInterface,
+    NotificationInterface,
     RolesInterface,
     UserInterface,
     UoW,
@@ -20,6 +31,10 @@ from .exceptions import (
     AvatarUnsupportedContentTypeError,
     InvalidAvatarObjectKeyError,
     InvalidCursorError,
+    TelegramAlreadyLinkedError,
+    TelegramLinkTokenExpiredError,
+    TelegramLinkTokenInvalidError,
+    TelegramNotLinkedError,
     UnknownRolesError,
     UnsupportedAvatarContentTypeError,
 )
@@ -34,6 +49,7 @@ class UserService:
         role_repo: RolesInterface,
         media_storage: MediaStorageService,
         cache_repo: CacheRepo | None = None,
+        notification_repo: NotificationInterface | None = None,
     ):
         self.uow = uow
         self.user_repo = user_repo
@@ -41,6 +57,7 @@ class UserService:
         self.role_repo = role_repo
         self.media_storage = media_storage
         self.cache_repo = cache_repo
+        self.notification_repo = notification_repo
         self.settings = get_settings()
         
     async def get_user(self, user_id: UUID | str) -> User | None:
@@ -55,6 +72,146 @@ class UserService:
         await self.uow.commit()
             
         await self.uow.session.refresh(user)
+
+    def _require_notification_repo(self) -> NotificationInterface:
+        if self.notification_repo is None:
+            raise RuntimeError("Notification repository is not configured")
+        return self.notification_repo
+
+    @staticmethod
+    def _map_notification_settings(
+        *,
+        email_enabled: bool,
+        telegram_enabled: bool,
+        telegram_linked: bool,
+        telegram_username: str | None,
+    ) -> UserNotificationSettings:
+        return UserNotificationSettings(
+            email_enabled=email_enabled,
+            telegram_enabled=telegram_enabled,
+            telegram_linked=telegram_linked,
+            telegram_username=telegram_username,
+        )
+
+    async def get_notification_settings(self, *, user: User) -> UserNotificationSettings:
+        notification_repo = self._require_notification_repo()
+        settings = await notification_repo.get_settings(user.id)
+        if settings is None:
+            settings = await notification_repo.get_or_create_settings(user.id)
+            await self.uow.commit()
+            await self.uow.session.refresh(settings)
+        telegram_account = await notification_repo.get_telegram_account(user.id)
+        return self._map_notification_settings(
+            email_enabled=settings.email_enabled,
+            telegram_enabled=settings.telegram_enabled,
+            telegram_linked=telegram_account is not None,
+            telegram_username=telegram_account.username if telegram_account else None,
+        )
+
+    async def patch_notification_settings(
+        self,
+        *,
+        user: User,
+        payload: UserNotificationSettingsPatch,
+    ) -> UserNotificationSettings:
+        notification_repo = self._require_notification_repo()
+        settings = await notification_repo.get_or_create_settings(user.id)
+
+        if payload.email_enabled is not None:
+            settings.email_enabled = payload.email_enabled
+
+        if payload.telegram_enabled is not None:
+            telegram_account = await notification_repo.get_telegram_account(user.id)
+            if payload.telegram_enabled and telegram_account is None:
+                raise TelegramNotLinkedError()
+            settings.telegram_enabled = payload.telegram_enabled
+
+        await self.uow.commit()
+        await self.uow.session.refresh(settings)
+        telegram_account = await notification_repo.get_telegram_account(user.id)
+        return self._map_notification_settings(
+            email_enabled=settings.email_enabled,
+            telegram_enabled=settings.telegram_enabled,
+            telegram_linked=telegram_account is not None,
+            telegram_username=telegram_account.username if telegram_account else None,
+        )
+
+    async def create_telegram_deeplink(self, *, user: User) -> TelegramDeeplinkResponse:
+        if not self.settings.TELEGRAM_BOT_USERNAME:
+            raise RuntimeError("TELEGRAM_BOT_USERNAME must be configured")
+
+        notification_repo = self._require_notification_repo()
+        token = secrets.token_urlsafe(24)
+        token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+        expires_at = datetime.now(UTC) + timedelta(
+            seconds=self.settings.TELEGRAM_LINK_TOKEN_TTL_SEC,
+        )
+
+        await notification_repo.upsert_telegram_link_token(
+            user_id=user.id,
+            token_hash=token_hash,
+            expires_at=expires_at,
+        )
+        await self.uow.commit()
+
+        deeplink_payload = f"link_{token}"
+        deeplink_url = f"https://t.me/{self.settings.TELEGRAM_BOT_USERNAME}?start={deeplink_payload}"
+        return TelegramDeeplinkResponse(
+            deeplink_url=deeplink_url,
+            expires_at=expires_at,
+        )
+
+    async def unlink_telegram(self, *, user: User) -> UserNotificationSettings:
+        notification_repo = self._require_notification_repo()
+        settings = await notification_repo.get_or_create_settings(user.id)
+        settings.telegram_enabled = False
+        await notification_repo.unlink_telegram_account(user.id)
+        await notification_repo.clear_telegram_link_token(user.id)
+        await self.uow.commit()
+        return self._map_notification_settings(
+            email_enabled=settings.email_enabled,
+            telegram_enabled=settings.telegram_enabled,
+            telegram_linked=False,
+            telegram_username=None,
+        )
+
+    async def link_telegram_by_token(
+        self,
+        *,
+        token: str,
+        chat_id: str,
+        username: str | None,
+    ) -> User:
+        notification_repo = self._require_notification_repo()
+        token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+        link_token = await notification_repo.get_telegram_link_token_by_hash(token_hash)
+        if link_token is None:
+            raise TelegramLinkTokenInvalidError()
+
+        now = datetime.now(UTC)
+        if link_token.expires_at < now:
+            raise TelegramLinkTokenExpiredError()
+
+        try:
+            await notification_repo.upsert_telegram_account(
+                user_id=link_token.user_id,
+                chat_id=chat_id,
+                username=username,
+            )
+        except IntegrityError as exc:
+            raise TelegramAlreadyLinkedError() from exc
+
+        settings = await notification_repo.get_or_create_settings(link_token.user_id)
+        settings.telegram_enabled = True
+        await notification_repo.clear_telegram_link_token(link_token.user_id)
+
+        await self.uow.commit()
+
+        user = await self.user_repo.get_by_id(link_token.user_id)
+        if user is None:
+            raise TelegramLinkTokenInvalidError()
+        await self.uow.session.refresh(user)
+        return user
 
     async def create_avatar_presign(
         self,
