@@ -39,6 +39,39 @@ type AvatarConfirmRequestDto = {
     object_key: string;
 };
 
+const requestAvatarPresign = async (file: File): Promise<AvatarPresignResponseDto> => {
+    const payload: AvatarPresignRequestDto = {
+        filename: file.name,
+        content_type: file.type,
+    };
+
+    const response = await apiProtected.post<AvatarPresignResponseDto>(
+        "/users/me/avatar/presign",
+        payload
+    );
+    return response.data;
+};
+
+const uploadToPresignedUrl = async (uploadUrl: string, file: File): Promise<void> => {
+    const uploadResult = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: {
+            "Content-Type": file.type,
+        },
+        body: file,
+    });
+
+    if (!uploadResult.ok) {
+        throw new Error(`Avatar upload failed with status ${uploadResult.status}`);
+    }
+};
+
+const confirmAvatarUpload = async (objectKey: string): Promise<User> => {
+    const payload: AvatarConfirmRequestDto = { object_key: objectKey };
+    const response = await apiProtected.post<UserDto>("/users/me/avatar/confirm", payload);
+    return toUser(response.data);
+};
+
 export const getProfile = async (): Promise<User> => {
     const response = await apiProtected.get<UserDto>("/users/me");
     return toUser(response.data);
@@ -55,36 +88,7 @@ export const patchProfile = async (
 export const uploadProfilePicture = async (
     file: File
 ): Promise<User> => {
-    const presignPayload: AvatarPresignRequestDto = {
-        filename: file.name,
-        content_type: file.type,
-    };
-
-    const presignResponse = await apiProtected.post<AvatarPresignResponseDto>(
-        "/users/me/avatar/presign",
-        presignPayload
-    );
-
-    const uploadResult = await fetch(presignResponse.data.upload_url, {
-        method: "PUT",
-        headers: {
-            "Content-Type": file.type,
-        },
-        body: file,
-    });
-
-    if (!uploadResult.ok) {
-        throw new Error(`Avatar upload failed with status ${uploadResult.status}`);
-    }
-
-    const confirmPayload: AvatarConfirmRequestDto = {
-        object_key: presignResponse.data.object_key,
-    };
-
-    const response = await apiProtected.post<UserDto>(
-        "/users/me/avatar/confirm",
-        confirmPayload
-    );
-
-    return toUser(response.data);
+    const { upload_url: uploadUrl, object_key: objectKey } = await requestAvatarPresign(file);
+    await uploadToPresignedUrl(uploadUrl, file);
+    return confirmAvatarUpload(objectKey);
 };
