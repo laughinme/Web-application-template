@@ -66,7 +66,7 @@ const normalizePath = (value?: string): string | undefined => {
   return value.replace(/\/+$/, "");
 };
 
-const refreshAccessToken = async (): Promise<string | null> => {
+export const refreshAccessToken = async (): Promise<string | null> => {
   if (!refreshPromise) {
     refreshPromise = (async () => {
       const csrfToken = await resolveCsrfToken();

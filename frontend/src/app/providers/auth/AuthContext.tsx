@@ -2,11 +2,10 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as api from "@/shared/api/auth";
 import {
-  apiPublic,
+  refreshAccessToken,
   setAccessToken as setAxiosAccessToken,
   setUnauthorizedHandler as setAxiosUnauthorizedHandler
 } from "@/shared/api/axiosInstance";
-import { resolveCsrfToken } from "@/shared/lib/csrf";
 import { AuthContext } from "./AuthContextObject";
 import type { AuthContextValue, AuthCredentials, AuthTokens, AuthUser } from "@/entities/auth/model";
 
@@ -144,22 +143,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     (async () => {
       try {
-        const csrfToken = await resolveCsrfToken();
-        if (!csrfToken) {
-          return;
-        }
-
-        const { data } = await apiPublic.post<AuthTokens>(
-          "/auth/refresh",
-          {},
-          {
-            headers: { "X-CSRF-Token": csrfToken },
-            withCredentials: true
-          }
-        );
-
-        if (data?.access_token) {
-          setAccessToken(data.access_token);
+        const newAccessToken = await refreshAccessToken();
+        if (newAccessToken) {
+          setAccessToken(newAccessToken);
           setSkipSessionRestore(false);
         }
       } catch {
