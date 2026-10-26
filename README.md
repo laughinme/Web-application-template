@@ -25,10 +25,11 @@ make admin email=me@example.com   # первый администратор
 make help        # все команды
 make test-unit   # unit-тесты без Docker, ~1 с
 make test        # все тесты: сам поднимет Postgres/Redis/S3 для тестов, ~5 с
-make check       # lint + mypy --strict + все тесты (то же, что CI)
+make check       # проверки бэкенда + ESLint, TypeScript и сборка фронтенда
 make fmt         # отформатировать и автоисправить
 make frontend-dev   # Next.js с hot reload на :3000
 make frontend-check # ESLint + TypeScript + production build
+make frontend-test  # браузерные тесты (нужен Playwright Chromium)
 make run         # API с автоперезагрузкой локально
 make worker      # воркер outbox локально
 make migration m="add posts"   # миграция по изменениям моделей

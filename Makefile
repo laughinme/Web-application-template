@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: frontend-dev frontend-check help install env keys run worker lint fmt typecheck test test-unit test-deps test-down \
+.PHONY: frontend-dev frontend-check frontend-test help install env keys run worker lint fmt typecheck test test-unit test-deps test-down \
 	check migrate migration admin openapi up down logs
 
 BACKEND := backend
@@ -57,6 +57,9 @@ frontend-dev: ## Run Next.js with hot reload: http://localhost:3000
 frontend-check: ## Frontend ESLint, strict TypeScript and production build
 	npm --prefix frontend run check
 
+frontend-test: ## Frontend browser regressions (install Chromium with npx playwright install chromium)
+	npm --prefix frontend run test:e2e
+
 lint: ## Ruff lint and format check
 	$(UV) ruff check .
 	$(UV) ruff format --check .
@@ -80,7 +83,7 @@ test: test-deps ## All tests (starts test containers if needed)
 test-down: ## Stop and remove the test containers
 	$(TEST_COMPOSE) down -v
 
-check: lint typecheck test frontend-check ## Everything CI runs
+check: lint typecheck test frontend-check ## Backend checks plus frontend lint, types and build
 
 # --- full stack in docker ------------------------------------------------------------
 
