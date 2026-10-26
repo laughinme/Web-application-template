@@ -1,8 +1,11 @@
+from collections.abc import Callable
 from datetime import datetime
 
 import pytest
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 
+from app.core.config import Settings
+from app.main import create_app
 from tests.integration.conftest import AppFactory
 
 PROBLEM_KEYS = {"type", "title", "status", "detail", "error_code", "instance", "timestamp"}
@@ -70,3 +73,22 @@ async def test_ready_reports_a_broken_dependency(app_factory: AppFactory) -> Non
 async def test_docs_are_hidden_in_production_like_setups(app_factory: AppFactory) -> None:
     async with app_factory(api_docs_enabled=False) as (_, client):
         assert (await client.get("/api/docs")).status_code == 404
+
+
+async def test_unexpected_error_is_a_500_problem_without_internals(
+    make_settings: Callable[..., Settings],
+) -> None:
+    app = create_app(make_settings(debug=False))
+
+    async def explode() -> None:
+        raise RuntimeError("database password is hunter2")
+
+    app.add_api_route("/api/explode", explode)
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+        response = await client.get("/api/explode", headers={"X-Request-ID": "boom-1"})
+
+    assert response.status_code == 500
+    assert response.json()["error_code"] == "INTERNAL_ERROR"
+    assert response.json()["detail"] == "Internal server error"
+    assert response.json()["request_id"] == "boom-1"

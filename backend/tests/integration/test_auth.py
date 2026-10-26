@@ -1,3 +1,5 @@
+import asyncio
+
 from httpx import AsyncClient
 
 from tests.factories import DEFAULT_PASSWORD, Account, login, register
@@ -120,3 +122,15 @@ async def test_login_is_rate_limited(app_factory: AppFactory) -> None:
         ]
 
     assert statuses == [401, 401, 429]
+
+
+async def test_parallel_refreshes_with_one_token_cannot_both_win(
+    user: Account, client: AsyncClient
+) -> None:
+    assert user.refresh_token
+    responses = await asyncio.gather(
+        client.post(REFRESH, headers=bearer(user.refresh_token)),
+        client.post(REFRESH, headers=bearer(user.refresh_token)),
+    )
+
+    assert sorted(response.status_code for response in responses) == [200, 401]
