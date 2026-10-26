@@ -1,28 +1,61 @@
-# Fullstack monolith application template
+# Fullstack monolith template
 
-The app requires postgres and redis launched locally to start. I prefer keeping it all as docker containers.
+Шаблон веб-приложения: FastAPI + SQLAlchemy 2 (async) + Postgres + Redis + S3-совместимое хранилище
+на бэкенде, React SPA на фронте, nginx перед ними. Из коробки: регистрация и вход (web и mobile),
+профиль с аватаром, админка, фоновый воркер, миграции, тесты на настоящей инфраструктуре и CI.
 
-You can start postgresql via docker command:
+**Как всё устроено и почему: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).** Там слои, транзакции,
+аутентификация, тесты, рецепт добавления фичи и сравнение со старой версией (она в ветке `legacy`).
+
+## Быстрый старт
+
+Нужны Docker, [uv](https://docs.astral.sh/uv/) и `make`.
+
+```bash
+make install                      # зависимости, backend/.env, JWT-ключи
+make up                           # весь стек: http://localhost (SPA), API на :8080
+make admin email=me@example.com   # первый администратор
 ```
-docker run -d --name template-pg \
--e POSTGRES_USER=postgres \
--e POSTGRES_PASSWORD=secret \
--e POSTGRES_DB=template-pg \
--p 5432:5432 \
--v template_pg_data:/var/lib/postgresql/data \
-postgres:17
+
+Документация API в dev: <http://localhost:8080/api/docs>
+
+## Команды
+
+```bash
+make help        # все команды
+make test-unit   # unit-тесты без Docker, ~1 с
+make test        # все тесты: сам поднимет Postgres/Redis/S3 для тестов, ~5 с
+make check       # lint + mypy --strict + все тесты (то же, что CI)
+make fmt         # отформатировать и автоисправить
+make run         # API с автоперезагрузкой локально
+make worker      # воркер outbox локально
+make migration m="add posts"   # миграция по изменениям моделей
+make migrate     # применить миграции
+make openapi     # обновить frontend/openapi.json
+make up / down / logs          # стек в Docker
 ```
 
-Redis can also be started the same way:
+## Структура
 
-```docker run -d --name redis -p 6379:6379 redis:latest```
+```text
+backend/
+  app/
+    api/        HTTP: роутеры, схемы, зависимости, формат ошибок, middleware
+    service/    сценарии использования; не знают про HTTP; не коммитят
+    domain/     правила и типы без FastAPI и SQLAlchemy
+    db/         ORM-модели, репозитории, Unit of Work
+    infra/      S3, Telegram, rate limit
+    core/       настройки, ошибки, логи, безопасность
+    main.py     create_app()
+    worker.py   фоновый процесс (outbox)
+  migrations/   Alembic
+  tests/        unit/ и integration/
+frontend/       React SPA
+nginx/          SPA + прокси /api и медиа
+```
 
-Next step in running preexisting migrations to create database tables and seed data in them. It can be done using alembic:
+## Переменные окружения
 
-```alembic upgrade head```
-
-After these steps you can run the app locally with uvicorn:
-
-```uvicorn main:app --host 0.0.0.0 --port 8080 --log-level debug --reload```
-
----
+Все настройки с комментариями: [backend/.env.example](backend/.env.example) и
+[backend/app/core/config.py](backend/app/core/config.py). В `APP_STAGE=prod` приложение не стартует
+с dev-секретами.

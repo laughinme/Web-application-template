@@ -77,5 +77,5 @@ asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
 pythonpath = ["."]
 addopts = "-ra --strict-markers"
-markers = ["integration: needs Postgres, Redis and MinIO from docker-compose.test.yml"]
+markers = ["integration: needs Postgres, Redis and S3 (RustFS) from docker-compose.test.yml"]
 filterwarnings = ["error::DeprecationWarning:app.*"]

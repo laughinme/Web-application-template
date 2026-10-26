@@ -14,8 +14,11 @@ This file explains how frontend API routing works in this project and gives read
 1. Start backend stack from project root:
 
 ```bash
-docker compose up -d backend db redis minio minio-init
+make up
 ```
+
+This starts Postgres, Redis, RustFS (S3), migrations, the API, the worker and nginx.
+nginx is needed even with `vite dev`: presigned avatar uploads and avatar URLs go through `http://localhost/media-public/...`.
 
 2. Apply local preset:
 
