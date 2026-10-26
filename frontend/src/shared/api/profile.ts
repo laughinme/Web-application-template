@@ -2,20 +2,20 @@ import apiProtected from "./axiosInstance";
 import { toUser, toUserPatchDto } from "@/entities/user/model";
 import type { User, UserPatchPayload } from "@/entities/user/model";
 
+export type UserRoleDto = "member" | "admin";
+
 export type UserDto = {
     id: string;
     email: string;
     username: string | null;
-    avatar_key?: string | null;
-    avatar_url?: string | null;
-    profile_pic_url?: string | null;
-    bio?: string | null;
+    bio: string | null;
+    avatar_key: string | null;
+    avatar_url: string | null;
+    role: UserRoleDto;
     is_onboarded: boolean;
     banned: boolean;
-    role_slugs?: string[];
-    roles?: string[];
     created_at: string;
-    updated_at: string | null;
+    updated_at: string;
 };
 
 export type UserPatchPayloadDto = {

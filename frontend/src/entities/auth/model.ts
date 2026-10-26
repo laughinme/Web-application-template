@@ -3,10 +3,12 @@ export interface AuthCredentials {
   password: string;
 }
 
+// Mirrors TokenPair from the backend: web clients get refresh_token = null (it is an httpOnly cookie).
 export interface AuthTokens {
   access_token: string;
-  refresh_token?: string;
-  [key: string]: unknown;
+  refresh_token: string | null;
+  token_type: "bearer";
+  expires_in: number;
 }
 
 export interface AuthUser {

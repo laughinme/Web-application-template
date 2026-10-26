@@ -1,12 +1,23 @@
-# fly.toml app configuration file generated for template-backend on 2026-02-04T14:00:38+07:00
-#
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
+# Fly.io deployment. Secrets (DATABASE_URL, REDIS_URL, JWT_PRIVATE_KEY, JWT_PUBLIC_KEY,
+# CSRF_HMAC_KEY, STORAGE_*) go to `fly secrets set`, never into this file.
 
 app = 'template-backend'
 primary_region = 'fra'
 
 [build]
+
+[env]
+  APP_STAGE = 'prod'
+  LOG_JSON = 'true'
+  COOKIE_SECURE = 'true'
+
+# Runs once per release, before new machines start: migrations never race.
+[deploy]
+  release_command = 'alembic upgrade head'
+
+[processes]
+  app = 'uvicorn app.main:create_app --factory --host 0.0.0.0 --port 8080 --proxy-headers --forwarded-allow-ips * --no-access-log'
+  worker = 'python -m app.worker'
 
 [http_service]
   internal_port = 8080
@@ -16,7 +27,14 @@ primary_region = 'fra'
   min_machines_running = 0
   processes = ['app']
 
+  [[http_service.checks]]
+    grace_period = '10s'
+    interval = '15s'
+    method = 'GET'
+    path = '/api/health'
+    timeout = '2s'
+
 [[vm]]
-  memory = '256mb'
+  memory = '512mb'
   cpus = 1
-  memory_mb = 256
+  processes = ['app', 'worker']
