@@ -72,8 +72,8 @@ backend/
     unit/                   без Docker, ~1 с
     integration/            реальные Postgres/Redis/S3 из docker-compose.test.yml
     factories.py            register(), login(), promote(), фейковый notifier
-frontend/                   SPA (React), ходит в /api/v1
-nginx/                      отдаёт SPA, проксирует /api и медиа
+frontend/                   Next.js App Router (React + TypeScript), ходит в /api/v1
+nginx/                      проксирует Next.js, /api и медиа
 docker-compose.yml          весь стек локально
 docker-compose.test.yml     одноразовые зависимости для тестов
 Makefile                    единая точка входа: make help
@@ -820,8 +820,8 @@ async def create_post(payload: PostCreate, user: CurrentUserDep, uow: UowDep) ->
 ### Локально
 
 ```bash
-make install          # uv sync + backend/.env + JWT-ключи
-make up               # весь стек в Docker: http://localhost (SPA + API), API напрямую на :8080
+make install          # uv sync + npm ci + backend/.env + JWT-ключи
+make up               # весь стек в Docker: http://localhost (Next.js + API), API напрямую на :8080
 make admin email=me@example.com
 make logs
 ```
@@ -837,8 +837,13 @@ make logs
 | `migrate` | `alembic upgrade head` один раз, потом завершается |
 | `backend` | API (uvicorn), стартует только после успешной миграции |
 | `worker` | outbox и чистка сессий; тот же образ, другая команда |
-| `nginx` | SPA, проксирование `/api` и `/media-public` |
+| `frontend` | Next.js standalone server на :3000, сборка из `frontend/Dockerfile` |
+| `nginx` | Проксирование Next.js, `/api` и `/media-public` |
 | `db`, `redis`, `s3` | Postgres 17, Redis 8, RustFS |
+
+Фронтенд для разработки: `make frontend-dev` запускает Next.js на :3000 с прокси к API.
+`make check` включает ESLint, строгий TypeScript и production-сборку фронтенда.
+Node.js 22+ нужен для локальных команд; Docker использует Node.js 24.
 
 ### Образ ([backend/Dockerfile](../backend/Dockerfile))
 

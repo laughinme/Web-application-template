@@ -1,4 +1,4 @@
-# Full local stack: `make up`, then open http://localhost (SPA + API behind nginx).
+# Full local stack: `make up`, then open http://localhost (Next.js + API behind nginx).
 # The API image is shared by three services: migrate (one-shot), backend and worker.
 name: monolith-template
 
@@ -54,15 +54,25 @@ services:
       s3:
         condition: service_healthy
 
+  frontend:
+    build:
+      context: ./frontend
+    expose:
+      - "3000"
+    restart: unless-stopped
+
   nginx:
     build:
-      context: .
-      dockerfile: nginx/Dockerfile
+      context: ./nginx
     ports:
       - "80:80"
     depends_on:
-      - backend
-      - s3
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_started
+      s3:
+        condition: service_healthy
     restart: unless-stopped
 
   db:

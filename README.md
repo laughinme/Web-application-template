@@ -1,7 +1,7 @@
 # Fullstack monolith template
 
 Шаблон веб-приложения: FastAPI + SQLAlchemy 2 (async) + Postgres + Redis + S3-совместимое хранилище
-на бэкенде, React SPA на фронте, nginx перед ними. Из коробки: регистрация и вход (web и mobile),
+на бэкенде, Next.js + React + TypeScript на фронте, nginx перед ними. Из коробки: регистрация и вход (web и mobile),
 профиль с аватаром, админка, фоновый воркер, миграции, тесты на настоящей инфраструктуре и CI.
 
 **Как всё устроено и почему: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).** Там слои, транзакции,
@@ -9,11 +9,11 @@
 
 ## Быстрый старт
 
-Нужны Docker, [uv](https://docs.astral.sh/uv/) и `make`.
+Нужны Docker, Node.js 22+, [uv](https://docs.astral.sh/uv/) и `make`.
 
 ```bash
-make install                      # зависимости, backend/.env, JWT-ключи
-make up                           # весь стек: http://localhost (SPA), API на :8080
+make install                      # зависимости Python/Node.js, backend/.env, JWT-ключи
+make up                           # весь стек: http://localhost (Next.js), API на :8080
 make admin email=me@example.com   # первый администратор
 ```
 
@@ -27,6 +27,8 @@ make test-unit   # unit-тесты без Docker, ~1 с
 make test        # все тесты: сам поднимет Postgres/Redis/S3 для тестов, ~5 с
 make check       # lint + mypy --strict + все тесты (то же, что CI)
 make fmt         # отформатировать и автоисправить
+make frontend-dev   # Next.js с hot reload на :3000
+make frontend-check # ESLint + TypeScript + production build
 make run         # API с автоперезагрузкой локально
 make worker      # воркер outbox локально
 make migration m="add posts"   # миграция по изменениям моделей
@@ -50,9 +52,12 @@ backend/
     worker.py   фоновый процесс (outbox)
   migrations/   Alembic
   tests/        unit/ и integration/
-frontend/       React SPA
-nginx/          SPA + прокси /api и медиа
+frontend/       Next.js App Router, React, TypeScript
+nginx/          прокси Next.js, /api и медиа
 ```
+
+Фронтенд локально: `make frontend-dev` после `make up`; настройки API и HTTPS —
+[frontend/README-dev.md](frontend/README-dev.md).
 
 ## Переменные окружения
 

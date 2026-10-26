@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help install env keys run worker lint fmt typecheck test test-unit test-deps test-down \
+.PHONY: frontend-dev frontend-check help install env keys run worker lint fmt typecheck test test-unit test-deps test-down \
 	check migrate migration admin openapi up down logs
 
 BACKEND := backend
@@ -11,8 +11,9 @@ help: ## Show this help
 
 # --- setup -------------------------------------------------------------------
 
-install: ## Install backend dependencies (uv) and create .env and JWT keys if missing
+install: ## Install backend/frontend dependencies and create .env and JWT keys if missing
 	cd $(BACKEND) && uv sync
+	npm --prefix frontend ci
 	@$(MAKE) --no-print-directory env keys
 
 env: ## Create backend/.env from the example (never overwrites)
@@ -50,6 +51,12 @@ openapi: ## Export the OpenAPI schema for the frontend (frontend/openapi.json)
 
 # --- quality -----------------------------------------------------------------------
 
+frontend-dev: ## Run Next.js with hot reload: http://localhost:3000
+	npm --prefix frontend run dev
+
+frontend-check: ## Frontend ESLint, strict TypeScript and production build
+	npm --prefix frontend run check
+
 lint: ## Ruff lint and format check
 	$(UV) ruff check .
 	$(UV) ruff format --check .
@@ -73,7 +80,7 @@ test: test-deps ## All tests (starts test containers if needed)
 test-down: ## Stop and remove the test containers
 	$(TEST_COMPOSE) down -v
 
-check: lint typecheck test ## Everything CI runs
+check: lint typecheck test frontend-check ## Everything CI runs
 
 # --- full stack in docker ------------------------------------------------------------
 
