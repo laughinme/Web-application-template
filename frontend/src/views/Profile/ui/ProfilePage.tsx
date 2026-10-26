@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import { motion } from "motion/react";
 import { IconCalendar, IconMail, IconShieldCheck } from "@tabler/icons-react";
@@ -127,7 +129,7 @@ export default function ProfilePage() {
                         </motion.div>
 
                         <motion.div variants={item} className="w-full md:w-2/3 flex flex-col pt-4 md:pt-8">
-                            <ProfileEditForm profile={profile} />
+                            <ProfileEditForm key={`${profile.id}:${profile.username}:${profile.bio}`} profile={profile} />
                         </motion.div>
                     </motion.div>
                 )}

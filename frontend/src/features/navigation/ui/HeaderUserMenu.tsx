@@ -1,4 +1,6 @@
-import { Link } from "react-router-dom";
+"use client";
+
+import Link from "next/link";
 import { IconLogout, IconUserCircle } from "@tabler/icons-react";
 
 import { useAuth } from "@/app/providers/auth/useAuth";
@@ -40,6 +42,7 @@ export function HeaderUserMenu() {
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <button
+                    aria-label="Меню пользователя"
                     className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 hover:bg-accent"
                 >
                     <Avatar className="h-8 w-8 grayscale transition-all hover:grayscale-0">
@@ -62,7 +65,7 @@ export function HeaderUserMenu() {
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
                     <DropdownMenuItem asChild>
-                        <Link to="/profile" className="cursor-pointer">
+                        <Link href="/profile" className="cursor-pointer">
                             <IconUserCircle className="mr-2 h-4 w-4" />
                             <span>Account</span>
                         </Link>

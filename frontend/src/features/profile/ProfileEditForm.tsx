@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion } from "motion/react";
 
 import { Button } from "@/shared/components/ui/button";
@@ -24,13 +24,6 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
         username: profile.username ?? "",
         bio: profile.bio ?? "",
     });
-
-    useEffect(() => {
-        setForm({
-            username: profile.username ?? "",
-            bio: profile.bio ?? "",
-        });
-    }, [profile.username, profile.bio]);
 
     const { mutate: save, isPending } = useUpdateProfile();
 

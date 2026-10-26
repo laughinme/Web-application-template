@@ -1,4 +1,6 @@
-import { Link } from "react-router-dom"
+"use client";
+
+import Link from "next/link"
 import {
   IconCreditCard,
   IconDotsVertical,
@@ -84,7 +86,7 @@ export function NavUser({
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
-                <Link to="/profile">
+                <Link href="/profile">
                   <IconUserCircle />
                   Account
                 </Link>

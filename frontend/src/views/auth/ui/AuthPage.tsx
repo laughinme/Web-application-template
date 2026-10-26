@@ -1,4 +1,6 @@
-import { useEffect, useState, type ReactElement } from "react";
+"use client";
+
+import { useState, type ReactElement } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useAuth } from "@/app/providers/auth/useAuth";
 import type { AuthCredentials } from "@/entities/auth/model";
@@ -31,13 +33,8 @@ export default function AuthPage(): ReactElement {
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
-  const [isVisible, setIsVisible] = useState<boolean>(false);
 
   const auth = useAuth();
-
-  useEffect(() => {
-    setIsVisible(true);
-  }, []);
 
   if (!auth) {
     return (
@@ -100,7 +97,7 @@ export default function AuthPage(): ReactElement {
       <motion.div
         className="relative w-full max-w-md"
         initial={{ opacity: 0, y: 32, scale: 0.96 }}
-        animate={isVisible ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 32, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
       >
         <AnimatePresence mode="wait">

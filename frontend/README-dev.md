@@ -1,75 +1,48 @@
-# Frontend Dev Presets
+# Frontend development
 
-This file explains how frontend API routing works in this project and gives ready-to-use presets.
+## Local backend
 
-## How It Works
+Start the Docker stack from the repository root with `make up`. It includes nginx, which serves
+presigned avatar uploads and public avatar URLs at `http://localhost/media-public/...`.
 
-- `axiosInstance.ts` builds API base from `VITE_API_BASE_URL` + `/api/v1`.
-- If `VITE_API_BASE_URL` is empty, frontend uses relative URLs (`/api/v1/...`).
-- In `vite dev`, relative `/api/*` is proxied to `VITE_PROXY_TARGET` (see `vite.config.ts`).
-- If `VITE_API_BASE_URL` is absolute (for example `https://api.example.com`), browser calls it directly and Vite proxy is bypassed.
-
-## Recommended Local Flow (Frontend + Docker Backend)
-
-1. Start backend stack from project root:
+In `frontend/`:
 
 ```bash
-make up
-```
-
-This starts Postgres, Redis, RustFS (S3), migrations, the API, the worker and nginx.
-nginx is needed even with `vite dev`: presigned avatar uploads and avatar URLs go through `http://localhost/media-public/...`.
-
-2. Apply local preset:
-
-```bash
+npm ci
 cp env-presets/local-backend.env .env.local
-```
-
-3. Run frontend:
-
-```bash
 npm run dev
 ```
 
-## Switch To Live Backend Quickly
+Open http://localhost:3000. Use `npm run dev:https` for local HTTPS with a generated certificate.
+For an HTTP backend, leave `COOKIE_SECURE=false`; enable secure cookies when serving over HTTPS.
 
-Recommended option (through Vite proxy, simpler for auth/cookies in dev):
+## API routing
+
+The browser uses `/api/v1` by default. Next.js rewrites `/api/*` to `API_PROXY_TARGET`, so auth
+cookies and CSRF work on the frontend origin without browser CORS requests. Docker nginx proxies
+`/api/*` directly to FastAPI; other requests go to the Next.js server.
+
+| Variable | Purpose |
+| --- | --- |
+| `API_PROXY_TARGET` | Server-side rewrite target; defaults to `http://localhost:8080` |
+| `NEXT_PUBLIC_API_BASE_URL` | Optional browser-visible API origin for direct calls; empty uses the proxy |
+
+Restart the dev server after changing `.env.local`. Production rewrites and `NEXT_PUBLIC_*`
+values are fixed during `npm run build`; set these variables in the build environment.
+`.env.local` is ignored by git and overrides `.env`.
+
+## Remote backend
+
+The proxy preset keeps requests on the frontend origin:
 
 ```bash
 cp env-presets/live-backend-proxy.env .env.local
 ```
 
-Then set your real backend URL in `.env.local`:
+Set `API_PROXY_TARGET=https://your-api-domain`, then run `npm run dev` (or `dev:https` when the
+backend issues secure cookies). Set the target on the deployment platform before building too.
 
-```env
-VITE_PROXY_TARGET=https://your-api-domain
-```
-
-Run:
-
-```bash
-npm run dev
-```
-
-## Optional Direct Mode (Without Vite Proxy)
-
-Use only if you intentionally want direct browser calls to live backend:
-
-```bash
-cp env-presets/live-backend-direct.env .env.local
-npm run dev
-```
-
-In this mode `VITE_PROXY_TARGET` is ignored for API calls.
-
-## Variables Summary
-
-- `VITE_API_BASE_URL`: API origin for direct calls. Keep empty for proxy mode.
-- `VITE_PROXY_TARGET`: backend target for Vite `/api` proxy.
-- `VITE_ENABLE_HTTPS`: enables/disables local HTTPS for Vite dev server.
-
-## Notes
-
-- Restart `npm run dev` after changing `.env.local`.
-- `.env.local` is ignored by git, so each teammate can keep their own setup.
+Direct browser calls are available with `env-presets/live-backend-direct.env`. Set
+`NEXT_PUBLIC_API_BASE_URL` to the backend origin. This bypasses the proxy and requires backend CORS
+with credentials, compatible SameSite settings and a shared cookie domain so the frontend can
+read the CSRF cookie. Use the proxy preset when frontend and backend have unrelated domains.

@@ -1,3 +1,5 @@
+"use client";
+
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as api from "@/shared/api/auth";
@@ -45,7 +47,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isRestoringSession, setIsRestoringSession] = useState<boolean>(true);
   const hasAttemptedSessionRestore = useRef<boolean>(false);
-  const skipSessionRestoreRef = useRef<boolean>(readSkipSessionRestoreFlag());
 
   const clearSession = useCallback((): void => {
     setAccessToken(null);
@@ -53,27 +54,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     queryClient.removeQueries({ queryKey: ["me"] });
   }, [queryClient]);
 
-  const setSkipSessionRestore = useCallback((value: boolean): void => {
-    skipSessionRestoreRef.current = value;
-    writeSkipSessionRestoreFlag(value);
+  const acceptAccessToken = useCallback((token: string): void => {
+    setAxiosAccessToken(token);
+    setAccessToken(token);
+    writeSkipSessionRestoreFlag(false);
   }, []);
-
-  useEffect(() => {
-    setAxiosAccessToken(accessToken);
-  }, [accessToken]);
 
   useEffect(() => {
     setAxiosUnauthorizedHandler(clearSession);
     return () => setAxiosUnauthorizedHandler(null);
   }, [clearSession]);
-
-  useEffect(() => {
-    if (accessToken) {
-      if (skipSessionRestoreRef.current) {
-        setSkipSessionRestore(false);
-      }
-    }
-  }, [accessToken, setSkipSessionRestore]);
 
   const {
     data: user,
@@ -90,8 +80,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     mutationFn: api.loginUser,
     onSuccess: (data) => {
       if (data?.access_token) {
-        setAccessToken(data.access_token);
-        setSkipSessionRestore(false);
+        acceptAccessToken(data.access_token);
       }
       queryClient.invalidateQueries({ queryKey: ["me"] });
     }
@@ -101,8 +90,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     mutationFn: api.registerUser,
     onSuccess: (data) => {
       if (data?.access_token) {
-        setAccessToken(data.access_token);
-        setSkipSessionRestore(false);
+        acceptAccessToken(data.access_token);
       }
       queryClient.invalidateQueries({ queryKey: ["me"] });
     }
@@ -121,39 +109,28 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   });
 
   const handleLogout = useCallback((): void => {
-    setSkipSessionRestore(true);
+    writeSkipSessionRestoreFlag(true);
     logoutMutation.mutate();
-  }, [logoutMutation, setSkipSessionRestore]);
-
-  useEffect(() => {
-    if (isError) {
-      clearSession();
-    }
-  }, [isError, clearSession]);
+  }, [logoutMutation]);
 
   useEffect(() => {
     if (hasAttemptedSessionRestore.current) {
       return;
     }
     hasAttemptedSessionRestore.current = true;
-    if (skipSessionRestoreRef.current) {
-      setIsRestoringSession(false);
-      return;
-    }
-
     (async () => {
       try {
+        if (readSkipSessionRestoreFlag()) return;
         const newAccessToken = await refreshAccessToken();
         if (newAccessToken) {
-          setAccessToken(newAccessToken);
-          setSkipSessionRestore(false);
+          acceptAccessToken(newAccessToken);
         }
       } catch {
       } finally {
         setIsRestoringSession(false);
       }
     })();
-  }, []);
+  }, [acceptAccessToken]);
 
   const value: AuthContextValue = {
     user: !isError && user ? user : null,

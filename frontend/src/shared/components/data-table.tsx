@@ -363,6 +363,8 @@ export function DataTable({
     [data]
   )
 
+  // TanStack Table manages memoization; React Compiler is not enabled in this app.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
     columns,

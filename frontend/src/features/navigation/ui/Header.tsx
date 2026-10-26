@@ -1,4 +1,6 @@
-import { Link } from "react-router-dom";
+"use client";
+
+import Link from "next/link";
 import { motion } from "motion/react";
 
 import { HeaderUserMenu } from "./HeaderUserMenu";
@@ -13,7 +15,7 @@ export function Header() {
         >
             <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-8">
                 <div className="flex items-center gap-6">
-                    <Link to="/" className="flex items-center space-x-2">
+                    <Link href="/" className="flex items-center space-x-2">
                         <motion.div
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
@@ -26,7 +28,7 @@ export function Header() {
                     <nav className="hidden md:flex gap-6">
                         <motion.div whileHover={{ y: -1 }}>
                             <Link
-                                to="/dashboard"
+                                href="/dashboard"
                                 className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                             >
                                 Dashboard
@@ -38,7 +40,7 @@ export function Header() {
                 <div className="flex items-center gap-4">
                     <motion.div className="md:hidden" whileHover={{ y: -1 }}>
                         <Link
-                            to="/dashboard"
+                            href="/dashboard"
                             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                         >
                             Dashboard
