@@ -15,7 +15,7 @@ from app.domain.users import (
     ensure_own_avatar_key,
     ensure_valid_upload,
 )
-from app.service.ports import AvatarStorage
+from app.ports import AvatarStorage
 from app.service.users.mappers import to_profile
 
 

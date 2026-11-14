@@ -75,6 +75,8 @@ class Settings(BaseSettings):
     outbox_batch_size: int = 20
     outbox_poll_interval_sec: float = 1.0
     outbox_max_attempts: int = 8
+    # How long a claimed event stays invisible to other workers. Longer than the slowest handler.
+    outbox_lease_sec: int = 300
 
     @property
     def show_api_docs(self) -> bool:

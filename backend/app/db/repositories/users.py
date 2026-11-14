@@ -3,12 +3,13 @@ from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import func, or_, select, tuple_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import User
 from app.domain.common import Cursor
 from app.domain.stats import DailyCount, UsersSummary
-from app.domain.users import UserQuery
+from app.domain.users import EmailTakenError, UserQuery
 
 
 def _like_pattern(text: str) -> str:
@@ -22,6 +23,15 @@ class UserRepository:
 
     def add(self, user: User) -> None:
         self._session.add(user)
+
+    async def create(self, user: User) -> None:
+        """Insert now, so the id is known and a duplicate email fails here, as a domain error."""
+        self._session.add(user)
+        try:
+            await self._session.flush()
+        except IntegrityError as exc:
+            # Two registrations raced past the service's check; the unique index decided.
+            raise EmailTakenError() from exc
 
     async def get(self, user_id: UUID, *, for_update: bool = False) -> User | None:
         if not for_update:

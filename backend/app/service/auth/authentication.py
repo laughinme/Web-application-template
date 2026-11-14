@@ -1,8 +1,6 @@
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
-from sqlalchemy.exc import IntegrityError
-
 from app.core.security.passwords import hash_password, needs_rehash, verify_password
 from app.core.security.tokens import RefreshToken, TokenCodec
 from app.db.models import AuthSession, User
@@ -46,12 +44,7 @@ class AuthService:
             raise EmailTakenError()
 
         user = User(email=email, password_hash=await hash_password(password), username=username)
-        self._uow.users.add(user)
-        try:
-            await self._uow.flush()
-        except IntegrityError as exc:
-            # Two registrations raced past the check above; the unique index decided.
-            raise EmailTakenError() from exc
+        await self._uow.users.create(user)
 
         self._uow.outbox.add(Topic.USER_REGISTERED, {"user_id": str(user.id), "email": email})
         return await self._open_session(user, client, user_agent)

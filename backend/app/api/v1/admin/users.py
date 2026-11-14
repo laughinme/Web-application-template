@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import require
 from app.api.schemas import CursorPage
-from app.api.v1.admin.deps import AdminUserServiceDep
+from app.api.v1.admin.deps import ModerationServiceDep
 from app.api.v1.admin.schemas import RoleUpdate
 from app.api.v1.users.schemas import UserOut
 from app.domain.users import Permission, Role, UserQuery
@@ -19,7 +19,7 @@ router = APIRouter()
     dependencies=[Depends(require(Permission.USERS_READ))],
 )
 async def list_users(
-    svc: AdminUserServiceDep,
+    svc: ModerationServiceDep,
     search: Annotated[
         str | None, Query(max_length=100, description="Email or username part")
     ] = None,
@@ -42,7 +42,7 @@ async def list_users(
     summary="Ban a user and end all their sessions",
     dependencies=[Depends(require(Permission.USERS_BAN))],
 )
-async def ban_user(user_id: UUID, svc: AdminUserServiceDep) -> UserOut:
+async def ban_user(user_id: UUID, svc: ModerationServiceDep) -> UserOut:
     return UserOut.from_domain(await svc.ban(user_id))
 
 
@@ -51,7 +51,7 @@ async def ban_user(user_id: UUID, svc: AdminUserServiceDep) -> UserOut:
     summary="Lift a ban",
     dependencies=[Depends(require(Permission.USERS_BAN))],
 )
-async def unban_user(user_id: UUID, svc: AdminUserServiceDep) -> UserOut:
+async def unban_user(user_id: UUID, svc: ModerationServiceDep) -> UserOut:
     return UserOut.from_domain(await svc.unban(user_id))
 
 
@@ -60,5 +60,5 @@ async def unban_user(user_id: UUID, svc: AdminUserServiceDep) -> UserOut:
     summary="Change a user's role",
     dependencies=[Depends(require(Permission.USERS_MANAGE_ROLES))],
 )
-async def set_role(user_id: UUID, payload: RoleUpdate, svc: AdminUserServiceDep) -> UserOut:
+async def set_role(user_id: UUID, payload: RoleUpdate, svc: ModerationServiceDep) -> UserOut:
     return UserOut.from_domain(await svc.set_role(user_id, payload.role))

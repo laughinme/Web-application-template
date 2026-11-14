@@ -7,7 +7,7 @@ import pytest
 from app.db.models import User
 from app.domain.outbox import Topic
 from app.domain.users import AvatarKeyInvalidError, AvatarNotUploadedError, ProfileChanges, Role
-from app.service.ports import ObjectInfo
+from app.ports import ObjectInfo
 from app.service.users import ProfileService
 
 # Services only talk to the UoW and to small protocols (app/service/ports.py),

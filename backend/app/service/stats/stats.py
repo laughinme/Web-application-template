@@ -4,7 +4,7 @@ from app.db.uow import UnitOfWork
 from app.domain.stats import DailyCount, UsersSummary
 
 
-class StatsService:
+class UserStatsService:
     def __init__(self, uow: UnitOfWork) -> None:
         self._uow = uow
 

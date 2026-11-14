@@ -4,26 +4,15 @@ import getpass
 import os
 
 from app.core.config import get_settings
-from app.core.security.passwords import hash_password
 from app.db.database import Database
-from app.db.models import User
-from app.domain.users import Role, normalize_email
+from app.service.moderation import ensure_admin
 
 
 async def create_admin(email: str, password: str) -> str:
-    """Create an admin or promote an existing account. Returns what happened."""
     db = Database(get_settings())
     try:
         async with db.unit_of_work() as uow:
-            email = normalize_email(email)
-            user = await uow.users.get_by_email(email)
-            if user is not None:
-                user.role = Role.ADMIN
-                return f"{email} promoted to admin"
-            uow.users.add(
-                User(email=email, password_hash=await hash_password(password), role=Role.ADMIN)
-            )
-            return f"admin {email} created"
+            return await ensure_admin(uow, email=email, password=password)
     finally:
         await db.dispose()
 

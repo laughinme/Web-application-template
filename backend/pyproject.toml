@@ -73,39 +73,50 @@ module = ["boto3.*", "botocore.*"]
 ignore_missing_imports = true
 
 # Architecture rules, checked by `lint-imports` in `make lint` and CI.
-# What each one means and what to do when it fails: docs/backend/architecture.md.
+# What each contract means and what to do when one fails: docs/backend/architecture.md.
 [tool.importlinter]
 root_package = "app"
 include_external_packages = true
 
 [[tool.importlinter.contracts]]
-name = "Layers: entrypoints > api > infra > service > db > domain > core"
+name = "Layers: entrypoints > api > infra | service > db > domain | ports > core (every package listed)"
 type = "layers"
+containers = ["app"]
 layers = [
-    "app.main | app.worker | app.cli",
-    "app.api",
-    # Adapters sit above the service layer: they implement its ports (app/service/ports.py),
-    # so they may import them, and the service layer can never import an adapter.
-    "app.infra",
-    "app.service",
-    "app.db",
-    "app.domain",
-    "app.core",
+    "main | worker | cli",
+    "api",
+    # Adapters and services never see each other: both depend on the ports below them.
+    "infra | service",
+    "db",
+    "domain | ports",
+    "core",
 ]
+exhaustive = true
 
 [[tool.importlinter.contracts]]
-name = "Domain is plain Python: no web framework, ORM, validation or network libraries"
+name = "Domain is plain Python: only core.errors from the app, no frameworks or SDKs"
 type = "forbidden"
 source_modules = ["app.domain"]
 forbidden_modules = [
-    "fastapi", "starlette", "sqlalchemy", "pydantic", "redis", "boto3", "botocore", "httpx",
+    "app.core.config", "app.core.logging", "app.core.security",
+    "fastapi", "starlette", "sqlalchemy", "pydantic", "pydantic_settings",
+    "redis", "boto3", "botocore", "httpx", "jwt", "argon2",
 ]
 
 [[tool.importlinter.contracts]]
-name = "Services know nothing about HTTP"
+name = "Services use repositories and ports, never HTTP, SQL or SDKs directly"
 type = "forbidden"
 source_modules = ["app.service"]
-forbidden_modules = ["fastapi", "starlette"]
+forbidden_modules = [
+    "fastapi", "starlette", "sqlalchemy", "redis", "boto3", "botocore", "httpx",
+]
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Infra adapters do not touch the database"
+type = "forbidden"
+source_modules = ["app.infra"]
+forbidden_modules = ["app.db"]
 
 [[tool.importlinter.contracts]]
 name = "Endpoints never touch ORM models, repositories or SQL directly"
@@ -113,6 +124,18 @@ type = "forbidden"
 source_modules = ["app.api"]
 forbidden_modules = ["app.db.models", "app.db.repositories", "sqlalchemy"]
 allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "ORM models and repositories are used only by db and service"
+type = "protected"
+protected_modules = ["app.db.models", "app.db.repositories"]
+allowed_importers = ["app.db", "app.service"]
+
+[[tool.importlinter.contracts]]
+name = "External SDKs are wired only in infra and the composition roots"
+type = "protected"
+protected_modules = ["boto3", "botocore", "httpx", "redis"]
+allowed_importers = ["app.infra", "app.main", "app.worker", "app.api.deps"]
 
 [[tool.importlinter.contracts]]
 name = "Zones inside a layer never import each other in a cycle"

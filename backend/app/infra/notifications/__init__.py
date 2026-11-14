@@ -3,7 +3,7 @@ import httpx
 from app.core.config import Settings
 from app.infra.notifications.log import LogNotifier
 from app.infra.notifications.telegram import TelegramNotifier
-from app.service.ports import Notifier
+from app.ports import Notifier
 
 __all__ = ["LogNotifier", "TelegramNotifier", "build_notifier"]
 

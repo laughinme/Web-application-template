@@ -3,17 +3,18 @@ from typing import Annotated
 from fastapi import Depends
 
 from app.api.deps import CurrentUserDep, StorageDep, UowDep
-from app.service.admin import AdminUserService, StatsService
+from app.service.moderation import ModerationService
+from app.service.stats import UserStatsService
 
 
-def _admin_users(uow: UowDep, storage: StorageDep, actor: CurrentUserDep) -> AdminUserService:
+def _moderation(uow: UowDep, storage: StorageDep, actor: CurrentUserDep) -> ModerationService:
     # The permission itself is checked per endpoint with `require(...)`.
-    return AdminUserService(uow, storage, actor)
+    return ModerationService(uow, storage, actor)
 
 
-def _stats(uow: UowDep) -> StatsService:
-    return StatsService(uow)
+def _stats(uow: UowDep) -> UserStatsService:
+    return UserStatsService(uow)
 
 
-AdminUserServiceDep = Annotated[AdminUserService, Depends(_admin_users)]
-StatsServiceDep = Annotated[StatsService, Depends(_stats)]
+ModerationServiceDep = Annotated[ModerationService, Depends(_moderation)]
+UserStatsServiceDep = Annotated[UserStatsService, Depends(_stats)]

@@ -13,11 +13,11 @@ from app.domain.users import (
     ensure_can_ban,
     ensure_can_change_role,
 )
-from app.service.ports import PublicUrls
+from app.ports import PublicUrls
 from app.service.users import to_profile
 
 
-class AdminUserService:
+class ModerationService:
     """Back-office actions on accounts. Who may call them is decided by `require(...)`."""
 
     def __init__(self, uow: UnitOfWork, urls: PublicUrls, actor: CurrentUser) -> None:

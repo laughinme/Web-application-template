@@ -1,4 +1,5 @@
 from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime, timedelta
 
 from httpx import AsyncClient
 from sqlalchemy import select, update
@@ -62,3 +63,21 @@ async def test_failed_request_leaves_no_event(client: AsyncClient, db: Database)
 
     assert duplicate.status_code == 409
     assert len(await _events(db)) == 1
+
+
+async def test_event_of_a_crashed_worker_comes_back_after_the_lease(
+    client: AsyncClient, db: Database
+) -> None:
+    await register(client)
+    now, lease = datetime.now(UTC), timedelta(minutes=5)
+
+    async with db.unit_of_work() as uow:
+        [claimed] = await uow.outbox.claim(limit=10, now=now, lease=lease)
+    # The worker "dies" here: no outcome is recorded.
+    async with db.unit_of_work() as uow:
+        hidden = await uow.outbox.claim(limit=10, now=now + timedelta(minutes=1), lease=lease)
+        [again] = await uow.outbox.claim(limit=10, now=now + timedelta(minutes=6), lease=lease)
+
+    assert hidden == []
+    assert again.id == claimed.id
+    assert again.attempts == 2

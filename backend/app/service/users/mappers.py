@@ -1,6 +1,6 @@
 from app.db.models import User
 from app.domain.users import UserProfile
-from app.service.ports import PublicUrls
+from app.ports import PublicUrls
 
 
 def to_profile(user: User, urls: PublicUrls) -> UserProfile:

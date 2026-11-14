@@ -1,6 +1,8 @@
 from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
+from uuid import UUID
 
 
 class Topic(StrEnum):
@@ -22,3 +24,13 @@ class OutboxStatus(StrEnum):
 # Gets the event payload and performs the side effect. Delivery is at-least-once,
 # so a handler may run twice for the same event and must be idempotent.
 type Handler = Callable[[dict[str, Any]], Awaitable[None]]
+
+
+@dataclass(frozen=True, slots=True)
+class ClaimedEvent:
+    """A leased event, detached from the session: handlers run after its transaction ended."""
+
+    id: UUID
+    topic: str
+    payload: dict[str, Any]
+    attempts: int

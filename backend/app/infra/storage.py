@@ -8,7 +8,7 @@ from botocore.client import Config
 from botocore.exceptions import ClientError
 
 from app.core.config import Settings
-from app.service.ports import ObjectInfo
+from app.ports import ObjectInfo
 
 _MISSING_CODES = {"404", "NoSuchKey", "NotFound"}
 

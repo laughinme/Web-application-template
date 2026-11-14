@@ -1,7 +1,7 @@
 from typing import Any
 
 from app.domain.outbox import Handler, Topic
-from app.service.ports import Notifier, ObjectDeleter
+from app.ports import Notifier, ObjectDeleter
 
 
 def build_handlers(notifier: Notifier, storage: ObjectDeleter) -> dict[str, Handler]:

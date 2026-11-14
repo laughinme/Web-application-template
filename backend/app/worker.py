@@ -42,6 +42,7 @@ async def run_worker(settings: Settings) -> None:
             build_handlers(build_notifier(settings, http), storage),
             batch_size=settings.outbox_batch_size,
             max_attempts=settings.outbox_max_attempts,
+            lease=timedelta(seconds=settings.outbox_lease_sec),
         )
         next_cleanup = datetime.now(UTC)
         logger.info("worker started")
