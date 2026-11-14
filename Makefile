@@ -45,16 +45,17 @@ admin: ## Create or promote an admin: make admin email=you@example.com
 	@test -n "$(email)" || (echo 'usage: make admin email=you@example.com' && exit 1)
 	$(UV) python -m app.cli create-admin "$(email)"
 
-openapi: ## Export the OpenAPI schema for the frontend (frontend/openapi.json)
+openapi: ## Export OpenAPI to frontend/openapi.json and regenerate frontend/src/shared/api/schema.d.ts
 	$(UV) python -c "import json; from app.main import create_app; print(json.dumps(create_app().openapi(), indent=2, ensure_ascii=False))" > ../frontend/openapi.json.tmp
 	mv frontend/openapi.json.tmp frontend/openapi.json
+	cd frontend && npm run api:types
 
 # --- quality -----------------------------------------------------------------------
 
 frontend-dev: ## Run Next.js with hot reload: http://localhost:3000
 	npm --prefix frontend run dev
 
-frontend-check: ## Frontend ESLint, strict TypeScript and production build
+frontend-check: ## Frontend ESLint, TypeScript, FSD boundaries (steiger), unit tests and production build
 	npm --prefix frontend run check
 
 frontend-test: ## Frontend browser regressions (install Chromium with npx playwright install chromium)
@@ -84,7 +85,7 @@ test: test-deps ## All tests (starts test containers if needed)
 test-down: ## Stop and remove the test containers
 	$(TEST_COMPOSE) down -v
 
-check: lint typecheck test frontend-check ## Backend checks plus frontend lint, types and build
+check: lint typecheck test frontend-check ## Every backend and frontend check (CI runs the same)
 
 # --- full stack in docker ------------------------------------------------------------
 

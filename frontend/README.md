@@ -1,24 +1,34 @@
-# Frontend
+# Фронтенд
 
-Next.js App Router, React, strict TypeScript and Tailwind CSS 4. Requires Node.js 22 or newer.
+Next.js (App Router), React 19, TypeScript strict, Tailwind CSS 4, TanStack Query, shadcn/ui.
+Код разложен по Feature-Sliced Design. Нужен Node.js 22 или новее.
 
 ```bash
 npm ci
-cp .env.example .env.local
-npm run dev                 # http://localhost:3000
-npm run dev:https           # optional local HTTPS
-npm run check               # ESLint, TypeScript and production build
-npm start                   # serve the production build
-npx playwright install chromium
-npm run test:e2e             # browser regression tests at three viewport sizes
+cp env-presets/local-backend.env .env.local
+npm run dev            # http://localhost:3000, /api проксируется на бэкенд
+npm run check          # ESLint, TypeScript, steiger (границы FSD), vitest, production build
+npm run test:e2e       # Playwright на 1440, 1366 и 390 px (нужен: npx playwright install chromium)
+npm run api:types      # типы API из openapi.json; из корня то же делает make openapi
 ```
 
-`src/app` owns routes, layouts and providers; `src/views` contains screen components.
-`src/features`, `src/entities` and `src/shared` hold reusable application code.
-Protected routes (`/`, `/profile`, `/dashboard`) restore the cookie session before rendering.
-`/auth?next=/profile` returns to the requested local page after signing in.
+Как устроены слои, куда класть новый код и как добавить экран:
+[docs/frontend/architecture.md](../docs/frontend/architecture.md).
+Прокси API, HTTPS и пресеты окружения: [README-dev.md](README-dev.md).
 
-API routing and environment presets: [README-dev.md](README-dev.md).
+## Карта
 
-Browser tests mock the API and start a production Next.js server automatically. To run them
-against an existing frontend, set `E2E_BASE_URL` (for example `http://localhost`).
+```text
+app/                 маршруты Next.js; каждый файл реэкспортирует страницу или layout из src/
+src/
+  _app/              провайдеры, layout'ы и guard'ы (вход, гость, админ), глобальные стили
+  _pages/            экраны: home, auth, profile, admin-overview, admin-users, not-found
+  widgets/           крупные блоки экранов: app-header, users-table, user-stats
+  features/          действия пользователя: auth, logout, edit-profile, upload-avatar, moderate-user
+  entities/          данные предметной области: session, user, user-activity
+  shared/            api (http, ошибки, типы из OpenAPI), ui (shadcn), lib, config
+tests/               Playwright со своим моком API
+```
+
+Слой импортирует только слои ниже себя. Слайс открывает наружу только свой `index.ts`.
+Это проверяет `npm run check:architecture`.
