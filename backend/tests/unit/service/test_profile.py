@@ -10,7 +10,7 @@ from app.domain.users import AvatarKeyInvalidError, AvatarNotUploadedError, Prof
 from app.ports import ObjectInfo
 from app.service.users import ProfileService
 
-# Services only talk to the UoW and to small protocols (app/service/ports.py),
+# Services only talk to the UoW and to small protocols (app/ports),
 # so a few in-memory fakes are enough to test their logic without Postgres or S3.
 
 

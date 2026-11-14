@@ -1,32 +1,66 @@
-# AI Coding Guidelines
+# Monolith-template
 
-## Context & Documentation (Context7 MCP)
+Шаблон и справочник для новых проектов владельца: FastAPI-монолит, Next.js на Feature-Sliced
+Design, Postgres, Redis, S3, outbox-воркер, тесты на настоящей инфраструктуре, CI и договорённости
+о том, как мы ведём код, документы и контекст для агентов. Общайся с пользователем на русском.
 
-Always use Context7 MCP for library/API documentation, code generation, setup, and configuration questions without requiring the user to explicitly ask.
-If the user provides an explicit Context7 library ID (for example, `/supabase/supabase`), skip library resolution and query that library directly.
-If the user specifies a library version, prefer that version's documentation.
-If Context7 is unavailable, state that briefly and fall back to official documentation.
+Если тебя привели сюда из другого проекта («сделай как в шаблоне»), начни с
+[docs/README.md](docs/README.md) и [docs/guides/new-project.md](docs/guides/new-project.md).
 
-## Backend architecture (read docs/ARCHITECTURE.md before changing backend code)
+## Ритуал сессии
 
-- Layers: `api -> service -> domain`; `db` and `infra` are adapters. `domain/` never imports FastAPI,
-  SQLAlchemy or Pydantic; `service/` never imports FastAPI; `api/` never builds SQL or touches ORM models.
-- One transaction per request: only the UoW owner commits (`UowDep`, worker, CLI). Services call
-  `await uow.flush()`, never `commit()`.
-- ORM objects stay inside `db/` and `service/`. Services return domain dataclasses; routers return
-  `XxxOut.from_domain(...)`.
-- Side effects (HTTP calls, emails, file deletion) go through the outbox (`uow.outbox.add`), never
-  inside the request transaction.
-- No `Settings()` or clients created at import time; everything long-lived is built in `create_app()`.
-- Expected errors subclass `DomainError` with an `ErrorCode`; never raise `HTTPException` from services.
-- Permissions are checked with `require(Permission.X)`, data-dependent rules live in `domain/`.
-- New tables and columns: model change + `make migration m="..."`, read the generated file, keep a
-  working `downgrade()`.
-- Every endpoint gets at least one integration test; domain rules get unit tests.
-- Before committing: `make check` must be green.
+1. Прочитай [docs/STATUS.md](docs/STATUS.md) и [docs/DECISIONS.md](docs/DECISIONS.md), затем
+   документ своей части: [бэкенд](docs/backend/architecture.md), [фронтенд](docs/frontend/architecture.md).
+2. Перед изменением подхода проверь DECISIONS: причина, скорее всего, уже записана.
+3. В конце заметного этапа перепиши `docs/STATUS.md` и добавь решения в `docs/DECISIONS.md`
+   (D-NNN: решение, почему, что отвергли). Журналы сессий не ведём.
 
-## Style
+## Карта
 
-- Python 3.13, full type hints, `ruff format` (line length 100), `mypy --strict`.
-- No module docstrings or header comments at the top of files. Comments explain "why", not "what".
-- No commented-out code and no empty placeholder packages.
+| Где | Что |
+| --- | --- |
+| `backend/` | FastAPI: слои `api → service → domain`, `db`, `infra`, `ports`; правила в [backend/AGENTS.md](backend/AGENTS.md) |
+| `frontend/` | Next.js + FSD; правила в [frontend/AGENTS.md](frontend/AGENTS.md) |
+| `docs/` | статус, решения, архитектура частей, гайды, шаблоны файлов: [оглавление](docs/README.md) |
+| `nginx/`, `docker-compose*.yml`, `Makefile` | стек в Docker, тестовая инфраструктура, команды |
+| `.github/workflows/` | CI бэкенда и фронтенда, ручной деплой на Fly |
+| `.claude/skills/add-feature` | процедура новой фичи от таблицы до экрана |
+
+## Правила
+
+- Код, идентификаторы и коммиты на английском; интерфейс и документация на русском.
+- Документацию библиотек бери через Context7 MCP, а не по памяти. Если Context7 недоступен, скажи
+  об этом и иди в официальную документацию.
+- Визуальная работа начинается со скилла `design-studio` ([docs/guides/design.md](docs/guides/design.md)).
+  Тексты для людей проходят через скилл `humanizer` ([docs/guides/writing.md](docs/guides/writing.md)).
+- Деплой по умолчанию на домашний сервер через скилл `home-server-deploy` ([docs/guides/deploy.md](docs/guides/deploy.md)).
+- Архитектурные границы проверяют import-linter (бэкенд) и steiger (фронтенд). Если контракт мешает,
+  сначала запись в DECISIONS, потом изменение контракта, а не обход.
+- Никаких шапок и модульных докстрингов в начале файлов; комментарий объясняет «почему». Без
+  закомментированного кода и пустых пакетов.
+- Коммиты по ходу работы: один законченный шаг на коммит, Conventional Commits, только свои файлы
+  (`git add <пути>`), без подписей ассистентов. Секреты (`backend/secrets/`, `.env`) не коммитим.
+- Перед коммитом `make check` зелёный; для UI ещё `make frontend-test` и скриншоты 1440 и 390 px.
+
+## Команды
+
+```bash
+make install                      # зависимости, backend/.env, JWT-ключи
+make up                           # весь стек: http://localhost, API на :8080, /api/docs
+make check                        # ruff, import-linter, mypy, тесты бэкенда, ESLint, tsc, steiger, vitest, build
+make test                         # тесты бэкенда (сам поднимет Postgres, Redis, S3)
+make frontend-test                # Playwright на трёх ширинах
+make migration m="add posts"      # миграция по моделям; прочитать файл глазами
+make openapi                      # frontend/openapi.json и TS-типы после изменения API
+make admin email=me@example.com   # первый администратор
+```
+
+## Куда записывать
+
+| Что произошло | Куда |
+| --- | --- |
+| Решение | `docs/DECISIONS.md` |
+| Закончили заметный кусок | `docs/STATUS.md`, переписать коротко |
+| Поменялся API | `make openapi`, документ части |
+| Новое правило для агентов | сначала попробовать сделать его проверкой (линтер, тест), иначе сюда или в `AGENTS.md` части |
+| Повторяемая процедура | скилл в `.claude/skills/` |
