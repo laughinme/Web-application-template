@@ -1,8 +1,7 @@
 from collections.abc import AsyncIterator, Awaitable, Callable
-from datetime import timedelta
-from typing import Annotated, Literal
+from typing import Annotated
 
-from fastapi import Depends, Header, Request
+from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from redis.asyncio import Redis
 
@@ -11,15 +10,14 @@ from app.core.errors import ForbiddenError, RateLimitedError, UnauthorizedError
 from app.core.security.tokens import TokenCodec
 from app.db.database import Database
 from app.db.uow import UnitOfWork
-from app.domain.auth import ClientKind
 from app.domain.users import CurrentUser, Permission
 from app.infra.rate_limit import RateLimiter
 from app.infra.storage import ObjectStorage
-from app.service.auth import AuthService, resolve_current_user
-from app.service.profile import ProfileService
+from app.service.auth import resolve_current_user
 
-# Everything long-lived is created once in the app factory and read from app.state here,
-# so tests can build an app with their own settings and fakes.
+# Dependencies shared by every endpoint group. A group's own ones (its services, headers)
+# live in `api/v1/<group>/deps.py`. Long-lived objects are created once in the app factory
+# and read from app.state here, so tests can build an app with their own settings and fakes.
 
 
 def _settings(request: Request) -> Settings:
@@ -80,6 +78,8 @@ CurrentUserDep = Annotated[CurrentUser, Depends(current_user)]
 
 
 def require(permission: Permission) -> Callable[[CurrentUser], Awaitable[CurrentUser]]:
+    """`Depends(require(Permission.X))` on an endpoint or a whole router."""
+
     async def dependency(user: CurrentUserDep) -> CurrentUser:
         if not user.can(permission):
             raise ForbiddenError()
@@ -100,30 +100,3 @@ def rate_limit(bucket: str) -> Callable[[Request, RedisDep, SettingsDep], Awaita
             raise RateLimitedError()
 
     return dependency
-
-
-def _client_kind(
-    x_client: Annotated[Literal["web", "mobile"], Header(alias="X-Client")] = "web",
-) -> ClientKind:
-    return ClientKind(x_client)
-
-
-ClientDep = Annotated[ClientKind, Depends(_client_kind)]
-UserAgentDep = Annotated[str | None, Header(alias="User-Agent", include_in_schema=False)]
-
-
-def _auth_service(uow: UowDep, codec: CodecDep, settings: SettingsDep) -> AuthService:
-    return AuthService(uow, codec, refresh_ttl=timedelta(seconds=settings.refresh_ttl))
-
-
-def _profile_service(uow: UowDep, storage: StorageDep, settings: SettingsDep) -> ProfileService:
-    return ProfileService(
-        uow,
-        storage,
-        presign_expires_sec=settings.storage_presign_expires_sec,
-        max_avatar_bytes=settings.max_avatar_size_bytes,
-    )
-
-
-AuthServiceDep = Annotated[AuthService, Depends(_auth_service)]
-ProfileServiceDep = Annotated[ProfileService, Depends(_profile_service)]

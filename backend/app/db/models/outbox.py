@@ -6,7 +6,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, UuidPkMixin, pg_enum, utcnow
-from app.domain.events import OutboxStatus
+from app.domain.outbox import OutboxStatus
 
 
 class OutboxEvent(UuidPkMixin, Base):

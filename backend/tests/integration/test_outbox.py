@@ -5,7 +5,7 @@ from sqlalchemy import select, update
 
 from app.db.database import Database
 from app.db.models import OutboxEvent
-from app.domain.events import OutboxStatus, Topic
+from app.domain.outbox import OutboxStatus, Topic
 from tests.factories import RecordingNotifier, register
 
 RunOutbox = Callable[[], Awaitable[int]]

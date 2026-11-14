@@ -60,9 +60,10 @@ frontend-check: ## Frontend ESLint, strict TypeScript and production build
 frontend-test: ## Frontend browser regressions (install Chromium with npx playwright install chromium)
 	npm --prefix frontend run test:e2e
 
-lint: ## Ruff lint and format check
+lint: ## Ruff lint, format check and architecture contracts (import-linter)
 	$(UV) ruff check .
 	$(UV) ruff format --check .
+	$(UV) lint-imports
 
 fmt: ## Format and autofix
 	$(UV) ruff format .

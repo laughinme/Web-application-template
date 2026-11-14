@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import OutboxEvent
-from app.domain.events import OutboxStatus, Topic
+from app.domain.outbox import OutboxStatus, Topic
 
 
 class OutboxRepository:

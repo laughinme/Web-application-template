@@ -1,6 +1,5 @@
 import asyncio
 import json
-from dataclasses import dataclass
 from typing import Any, Self
 from urllib.parse import quote
 
@@ -9,14 +8,9 @@ from botocore.client import Config
 from botocore.exceptions import ClientError
 
 from app.core.config import Settings
+from app.service.ports import ObjectInfo
 
 _MISSING_CODES = {"404", "NoSuchKey", "NotFound"}
-
-
-@dataclass(frozen=True, slots=True)
-class ObjectInfo:
-    size_bytes: int
-    content_type: str | None
 
 
 class ObjectStorage:

@@ -26,6 +26,7 @@ dev = [
     "ruff>=0.14",
     "mypy>=1.18",
     "boto3-stubs[s3]>=1.42",
+    "import-linter>=2.5",
 ]
 
 [tool.uv]
@@ -70,6 +71,54 @@ files = ["app", "migrations/env.py"]
 [[tool.mypy.overrides]]
 module = ["boto3.*", "botocore.*"]
 ignore_missing_imports = true
+
+# Architecture rules, checked by `lint-imports` in `make lint` and CI.
+# What each one means and what to do when it fails: docs/backend/architecture.md.
+[tool.importlinter]
+root_package = "app"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Layers: entrypoints > api > infra > service > db > domain > core"
+type = "layers"
+layers = [
+    "app.main | app.worker | app.cli",
+    "app.api",
+    # Adapters sit above the service layer: they implement its ports (app/service/ports.py),
+    # so they may import them, and the service layer can never import an adapter.
+    "app.infra",
+    "app.service",
+    "app.db",
+    "app.domain",
+    "app.core",
+]
+
+[[tool.importlinter.contracts]]
+name = "Domain is plain Python: no web framework, ORM, validation or network libraries"
+type = "forbidden"
+source_modules = ["app.domain"]
+forbidden_modules = [
+    "fastapi", "starlette", "sqlalchemy", "pydantic", "redis", "boto3", "botocore", "httpx",
+]
+
+[[tool.importlinter.contracts]]
+name = "Services know nothing about HTTP"
+type = "forbidden"
+source_modules = ["app.service"]
+forbidden_modules = ["fastapi", "starlette"]
+
+[[tool.importlinter.contracts]]
+name = "Endpoints never touch ORM models, repositories or SQL directly"
+type = "forbidden"
+source_modules = ["app.api"]
+forbidden_modules = ["app.db.models", "app.db.repositories", "sqlalchemy"]
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Zones inside a layer never import each other in a cycle"
+type = "acyclic_siblings"
+ancestors = ["app.api.v1", "app.service", "app.domain", "app.db", "app.infra"]
+depth = 0
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

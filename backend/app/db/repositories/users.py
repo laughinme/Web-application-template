@@ -6,7 +6,7 @@ from sqlalchemy import func, or_, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import User
-from app.domain.pagination import Cursor
+from app.domain.common import Cursor
 from app.domain.stats import DailyCount, UsersSummary
 from app.domain.users import UserQuery
 
